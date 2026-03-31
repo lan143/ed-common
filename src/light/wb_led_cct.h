@@ -17,15 +17,17 @@ namespace EDCommon
 
             bool hasMQTTSupport = false;
             EDMQTT::MQTT* mqtt = nullptr;
-            std::string mqttStateTopic;
+            std::string controllerName;
+            std::string name;
             std::string mqttCommandTopic;
+            std::string mqttStateTopic;
 
             bool hasDiscovery = false;
             EDHA::DiscoveryMgr* discoveryMgr = nullptr;
             EDHA::Device* device = nullptr;
-            std::string discoveryName;
-            std::string discoveryObjectID;
-            std::string controllerName;
+
+            uint16_t minTemperature = 2700;
+            uint16_t maxTemperature = 6000;
         };
 
         using WBLedCCTOption = std::function<void(WBLedCCTConfig&)>;
@@ -35,25 +37,30 @@ namespace EDCommon
             return [channel](WBLedCCTConfig& c) { c.switchChannel = channel; };
         }
 
-        WBLedCCTOption withMQTT(EDMQTT::MQTT* mqtt, std::string stateTopic, std::string commandTopic)
+        WBLedCCTOption withMQTT(EDMQTT::MQTT* mqtt, std::string controllerName, std::string name)
         {
-            return [mqtt, stateTopic, commandTopic](WBLedCCTConfig& c) {
+            return [mqtt, controllerName, name](WBLedCCTConfig& c) {
                 c.hasMQTTSupport = true;
                 c.mqtt = mqtt;
-                c.mqttStateTopic = stateTopic;
-                c.mqttCommandTopic = commandTopic;
+                c.controllerName = controllerName;
+                c.name = name;
             };
         }
 
-        WBLedCCTOption withDiscovery(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device, std::string discoveryName, std::string discoveryObjectID, std::string controllerName)
+        WBLedCCTOption withDiscovery(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device)
         {
-            return [discoveryMgr, device, discoveryName, discoveryObjectID, controllerName](WBLedCCTConfig& c) {
+            return [discoveryMgr, device](WBLedCCTConfig& c) {
                 c.hasDiscovery = true;
                 c.discoveryMgr = discoveryMgr;
                 c.device = device;
-                c.discoveryName = discoveryName;
-                c.discoveryObjectID = discoveryObjectID;
-                c.controllerName = controllerName;
+            };
+        }
+
+        WBLedCCTOption withTemperature(uint16_t minTemperature, uint16_t maxTemperature)
+        {
+            return [minTemperature, maxTemperature](WBLedCCTConfig& c) {
+                c.minTemperature = minTemperature;
+                c.maxTemperature = maxTemperature;
             };
         }
 
@@ -75,6 +82,7 @@ namespace EDCommon
             void update();
 
         private:
+            WBLedCCTConfig _config; 
             uint8_t _cctChannel;
 
         private:

@@ -1,14 +1,16 @@
+#include <algorithm>
 #include <log/log.h>
 
 #include "mqtt/state_producer.h"
+#include "mqtt/command_consumer.h"
 #include "wb_led_cct.h"
 
 bool EDCommon::Light::WBLedCCT::init(uint8_t cctChannel, std::initializer_list<WBLedCCTOption> options)
 {
-    WBLedCCTConfig config;
+    _cctChannel = cctChannel;
 
     for (auto& opt : options) {
-        opt(config);
+        opt(_config);
     }
 
     EDWB::LEDMode mode;
@@ -20,53 +22,112 @@ bool EDCommon::Light::WBLedCCT::init(uint8_t cctChannel, std::initializer_list<W
             mode = EDWB::LED_MODE_2WCCT;
             break;
         default:
-            LOGE("init", "unsupported cct channel");
+            LOGE("WBLedCCT::init", "unsupported cct channel");
             return false;
     }
 
     if (!_led->setMode(mode)) {
-        LOGE("init", "failed to change WB-LED mode");
+        LOGE("WBLedCCT::init", "failed to change WB-LED mode");
         return false;
     }
 
-    if (config.switchChannel > 0) {
-        _led->setInputMode(config.switchChannel, true);
-        _led->setSafeMode(config.switchChannel, EDWB::SAFE_MODE_DONT_BLOCK_INPUT);
-        _led->setInputActionRaw(config.switchChannel, EDWB::INPUT_TYPE_SHORT_CLICK, 0x3007); // switch cct @todo: add support cct2
-        _led->setInputActionRaw(config.switchChannel, EDWB::INPUT_TYPE_LONG_CLICK, 0xB008); // change cct brightness @todo: add support cct2
+    if (_config.switchChannel > 0) {
+        if (!_led->setInputMode(_config.switchChannel, true)) {
+            LOGE("WBLedCCT::init", "failed to set input mode");
+            return false;
+        }
+
+        if (!_led->setSafeMode(_config.switchChannel, EDWB::SAFE_MODE_DONT_BLOCK_INPUT)) {
+            LOGE("WBLedCCT::init", "failed to set safe mode");
+            return false;
+        }
+
+        if (!_led->setInputActionRaw(_config.switchChannel, EDWB::INPUT_TYPE_SHORT_CLICK, 0x3007)) { // switch cct @todo: add support cct2
+            LOGE("WBLedCCT::init", "failed to set input action raw");
+            return false;
+        }
+
+        if (!_led->setInputActionRaw(_config.switchChannel, EDWB::INPUT_TYPE_LONG_CLICK, 0xB008)) { // change cct brightness @todo: add support cct2
+            LOGE("WBLedCCT::init", "failed to set input action raw");
+            return false;
+        }
     }
 
-    if (config.hasMQTTSupport) {
-        auto stateProducer = new StateProducer(config.mqtt);
-        stateProducer->init(config.mqttStateTopic.c_str());
+    if (_config.hasMQTTSupport) {
+        char mqttStateTopic[64] = {0};
+        char mqttCommandTopic[64] = {0};
+        std::string controllerName = _config.controllerName;
+        std::string name = _config.name;
+
+        std::replace(controllerName.begin(), controllerName.end(), ' ', '_');
+        std::transform(controllerName.begin(), controllerName.end(), controllerName.begin(), [](unsigned char c) {
+            return std::tolower(c);
+        });
+
+        std::replace(name.begin(), name.end(), ' ', '_');
+        std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) {
+            return std::tolower(c);
+        });
+
+        snprintf(mqttStateTopic, 64, "%s/%s/%s/state", controllerName, EDUtils::getChipID(), name);
+        snprintf(mqttCommandTopic, 64, "%s/%s/%s/set", controllerName, EDUtils::getChipID(), name);
+
+        _config.mqttStateTopic = mqttStateTopic;
+        _config.mqttCommandTopic = mqttCommandTopic;
+
+        LOGD("WBLedCCT::init", "command topic: %s, state topic: %s", _config.mqttStateTopic.c_str(), _config.mqttCommandTopic.c_str());
+
+        auto stateProducer = new StateProducer(_config.mqtt);
+        stateProducer->init(_config.mqttStateTopic.c_str());
         _mqttStateMgr = new EDUtils::StateMgr<MQTTState>(stateProducer);
+
+        auto commandConsumer = new MQTTCommandConsumer(this);
+        commandConsumer->init(_config.mqttCommandTopic.c_str());
+        _config.mqtt->subscribe(commandConsumer);
     }
 
-    if (config.hasDiscovery && config.hasMQTTSupport) {
-        config.discoveryMgr->addLight(
-            config.device,
-            config.discoveryName,
-            config.discoveryObjectID,
-            EDUtils::formatString("%s_%s_%s", config.discoveryObjectID, config.controllerName, EDUtils::getChipID())
+    if (_config.hasDiscovery && _config.hasMQTTSupport) {
+        std::string discoveryObjectID = _config.name;
+        std::string controllerName = _config.controllerName;
+
+        std::replace(controllerName.begin(), controllerName.end(), ' ', '_');
+        std::transform(controllerName.begin(), controllerName.end(), controllerName.begin(), [](unsigned char c) {
+            return std::tolower(c);
+        });
+
+        std::replace(discoveryObjectID.begin(), discoveryObjectID.end(), ' ', '_');
+        std::transform(discoveryObjectID.begin(), discoveryObjectID.end(), discoveryObjectID.begin(), [](unsigned char c) {
+            return std::tolower(c);
+        });
+
+        std::string uniqueID = EDUtils::formatString("%s_%s_%s", discoveryObjectID, controllerName, EDUtils::getChipID());
+
+        _config.discoveryMgr->addLight(
+            _config.device,
+            _config.name,
+            discoveryObjectID,
+            uniqueID
         )
-            ->setCommandTopic(config.mqttCommandTopic)
-            ->setStateTopic(config.mqttStateTopic)
-            ->setStateValueTemplate("{{ value_json.hallwayLightEnabled }}")
-            ->setPayloadOn("stateHallwayLightOn")
-            ->setPayloadOff("stateHallwayLightOff")
-            ->setBrightnessCommandTopic(config.mqttCommandTopic)
-            ->setBrightnessCommandTemplate("{\"hallwayLightBrightness\": {{ value }} }")
-            ->setBrightnessStateTopic(config.mqttStateTopic)
-            ->setBrightnessValueTemplate("{{ value_json.hallwayLightBrightness }}")
+            ->setCommandTopic(_config.mqttCommandTopic)
+            ->setStateTopic(_config.mqttStateTopic)
+            ->setStateValueTemplate("{{ value_json.enabled }}")
+            ->setPayloadOn("on")
+            ->setPayloadOff("off")
+            ->setBrightnessCommandTopic(_config.mqttCommandTopic)
+            ->setBrightnessCommandTemplate("{\"brightness\": {{ value }} }")
+            ->setBrightnessStateTopic(_config.mqttStateTopic)
+            ->setBrightnessValueTemplate("{{ value_json.brightness }}")
             ->setBrightnessScale(100)
             ->setColorTempKelvin(true)
-            ->setColorTempCommandTemplate("{\"hallwayLightTempColor\": {{ value }} }")
-            ->setColorTempCommandTopic(config.mqttCommandTopic)
-            ->setColorTempStateTopic(config.mqttStateTopic)
-            ->setColorTempValueTemplate("{{ value_json.hallwayLightTempColor }}")
+            ->setColorTempCommandTemplate("{\"tempColor\": {{ value }} }")
+            ->setColorTempCommandTopic(_config.mqttCommandTopic)
+            ->setColorTempStateTopic(_config.mqttStateTopic)
+            ->setColorTempValueTemplate("{{ value_json.tempColor }}")
             ->setMinKelvin(2700) // @todo: move to options
             ->setMaxKelvin(6000); // @todo: move to options
     }
+
+    return true;
 }
 
 bool EDCommon::Light::WBLedCCT::setState(bool enable)
