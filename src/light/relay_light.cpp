@@ -78,7 +78,9 @@ bool EDCommon::Light::Relay::setState(bool enable)
         return false;
     }
 
-    _mqttStateMgr->getState().setEnabled(enable);
+    if (_mqttStateMgr != nullptr) {
+        _mqttStateMgr->getState().setEnabled(enable);
+    }
 
     return true;
 }
@@ -91,4 +93,8 @@ std::pair<bool, bool> EDCommon::Light::Relay::isEnabled()
 void EDCommon::Light::Relay::update()
 {
     _relay->update();
+
+    if (_mqttStateMgr != nullptr) {
+        _mqttStateMgr->loop();
+    }
 }

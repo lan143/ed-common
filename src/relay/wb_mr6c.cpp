@@ -67,8 +67,8 @@ bool EDCommon::Relay::WBMR6C::init(uint8_t channel, std::initializer_list<WBMR6C
             ->setValueTemplate("{{ value_json.enabled }}")
             ->setPayloadOn("on")
             ->setPayloadOff("off")
-            ->setStateOn("true")
-            ->setStateOff("false");
+            ->setStateOn("on")
+            ->setStateOff("off");
     }
 
     return true;
