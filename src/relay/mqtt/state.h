@@ -1,11 +1,10 @@
 #pragma once
 
 #include <Arduino.h>
-#include <FastLED.h>
 
 namespace EDCommon
 {
-    namespace Light
+    namespace Relay
     {
         class MQTTState
         {
@@ -17,13 +16,10 @@ namespace EDCommon
 
             std::string marshalJSON();
 
-            void setEnabled(bool enabled) { _enabled = {enabled, true}; }
-
+            void setState(bool enabled) { _enabled = {enabled, true}; }
+        
         private:
             std::pair<bool, bool> _enabled;
-            std::pair<uint8_t, bool> _brightness;
-            std::pair<uint16_t, bool> _tempColor;
-            std::pair<CRGB, bool> _color;
         };
     }
 }
