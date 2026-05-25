@@ -68,7 +68,7 @@ void EDCommon::BinarySensor::WBMR6C::update()
             }
 
             _contact = result;
-        } else {
+        } else if (!result.second) {
             LOGE("update", "failed to get MR6C input channel state");
         }
 
