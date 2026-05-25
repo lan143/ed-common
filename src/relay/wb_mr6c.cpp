@@ -23,13 +23,13 @@ bool EDCommon::Relay::WBMR6C::init(uint8_t channel, std::initializer_list<WBMR6C
             return std::tolower(c);
         });
 
-        snprintf(mqttStateTopic, 64, "%s/%s/state", _config.topicPrefix, name);
-        snprintf(mqttCommandTopic, 64, "%s/%s/set", _config.topicPrefix, name);
+        snprintf(mqttStateTopic, 64, "%s/%s/state", _config.topicPrefix.c_str(), name.c_str());
+        snprintf(mqttCommandTopic, 64, "%s/%s/set", _config.topicPrefix.c_str(), name.c_str());
 
         _config.mqttStateTopic = mqttStateTopic;
         _config.mqttCommandTopic = mqttCommandTopic;
 
-        LOGD("WBLedCCT::init", "command topic: %s, state topic: %s", _config.mqttStateTopic.c_str(), _config.mqttCommandTopic.c_str());
+        LOGD("Relay::init", "command topic: %s, state topic: %s", _config.mqttStateTopic.c_str(), _config.mqttCommandTopic.c_str());
 
         auto stateProducer = new StateProducer(_config.mqtt);
         stateProducer->init(_config.mqttStateTopic.c_str());
@@ -54,7 +54,7 @@ bool EDCommon::Relay::WBMR6C::init(uint8_t channel, std::initializer_list<WBMR6C
             return std::tolower(c);
         });
 
-        std::string uniqueID = EDUtils::formatString("%s_%s_%s", discoveryObjectID, controllerName, EDUtils::getChipID());
+        std::string uniqueID = EDUtils::formatString("%s_%s_%s", discoveryObjectID.c_str(), controllerName.c_str(), EDUtils::getChipID());
 
         _config.discoveryMgr->addSwitch(
             _config.device,
@@ -81,7 +81,10 @@ bool EDCommon::Relay::WBMR6C::setState(bool enable)
         return false;
     }
 
-    _mqttStateMgr->getState().setState(enable);
+    if (_mqttStateMgr != nullptr) {
+        _mqttStateMgr->getState().setState(enable);
+    }
+
     _lastEnabledTime = esp_timer_get_time();
 
     return true;
@@ -94,7 +97,9 @@ std::pair<bool, bool> EDCommon::Relay::WBMR6C::isEnabled()
 
 void EDCommon::Relay::WBMR6C::update()
 {
-    _mqttStateMgr->loop();
+    if (_mqttStateMgr != nullptr) {
+        _mqttStateMgr->loop();
+    }
 
     if (_config.hasTimeout && (_lastTimeoutCheckTime + 1000000) < esp_timer_get_time()) {
         auto enabled = isEnabled();

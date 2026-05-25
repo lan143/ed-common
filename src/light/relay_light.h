@@ -29,7 +29,7 @@ namespace EDCommon
 
         using RelayOption = std::function<void(RelayConfig&)>;
 
-        RelayOption withMQTT(EDMQTT::MQTT* mqtt, std::string topicPrefix, std::string controllerName, std::string name)
+        inline RelayOption withMQTT(EDMQTT::MQTT* mqtt, std::string topicPrefix, std::string controllerName, std::string name)
         {
             return [mqtt, topicPrefix, controllerName, name](RelayConfig& c) {
                 c.hasMQTTSupport = true;
@@ -40,7 +40,7 @@ namespace EDCommon
             };
         }
 
-        RelayOption withDiscovery(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device)
+        inline RelayOption withDiscovery(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device)
         {
             return [discoveryMgr, device](RelayConfig& c) {
                 c.hasDiscovery = true;

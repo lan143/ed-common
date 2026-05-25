@@ -32,12 +32,12 @@ namespace EDCommon
 
         using WBLedCCTOption = std::function<void(WBLedCCTConfig&)>;
 
-        WBLedCCTOption withSwitchChannel(uint8_t channel)
+        inline WBLedCCTOption withSwitchChannel(uint8_t channel)
         {
             return [channel](WBLedCCTConfig& c) { c.switchChannel = channel; };
         }
 
-        WBLedCCTOption withMQTT(EDMQTT::MQTT* mqtt, std::string controllerName, std::string name)
+        inline WBLedCCTOption withMQTT(EDMQTT::MQTT* mqtt, std::string controllerName, std::string name)
         {
             return [mqtt, controllerName, name](WBLedCCTConfig& c) {
                 c.hasMQTTSupport = true;
@@ -47,7 +47,7 @@ namespace EDCommon
             };
         }
 
-        WBLedCCTOption withDiscovery(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device)
+        inline WBLedCCTOption withDiscovery(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device)
         {
             return [discoveryMgr, device](WBLedCCTConfig& c) {
                 c.hasDiscovery = true;
@@ -56,7 +56,7 @@ namespace EDCommon
             };
         }
 
-        WBLedCCTOption withTemperature(uint16_t minTemperature, uint16_t maxTemperature)
+        inline WBLedCCTOption withTemperature(uint16_t minTemperature, uint16_t maxTemperature)
         {
             return [minTemperature, maxTemperature](WBLedCCTConfig& c) {
                 c.minTemperature = minTemperature;
@@ -67,7 +67,7 @@ namespace EDCommon
         class WBLedCCT : public Light, public Dimmer, public ColorTemperatureSetter
         {
         public:
-            WBLedCCT(EDWB::LED* led) : _led(led) {}
+            WBLedCCT(EDWB::LED* led) : _led(led) { }
             bool init(uint8_t cctChannel, std::initializer_list<WBLedCCTOption> options);
 
             bool setState(bool enable);

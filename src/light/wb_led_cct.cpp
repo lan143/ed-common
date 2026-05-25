@@ -69,8 +69,8 @@ bool EDCommon::Light::WBLedCCT::init(uint8_t cctChannel, std::initializer_list<W
             return std::tolower(c);
         });
 
-        snprintf(mqttStateTopic, 64, "%s/%s/%s/state", controllerName, EDUtils::getChipID(), name);
-        snprintf(mqttCommandTopic, 64, "%s/%s/%s/set", controllerName, EDUtils::getChipID(), name);
+        snprintf(mqttStateTopic, 64, "%s/%s/%s/state", controllerName.c_str(), EDUtils::getChipID(), name.c_str());
+        snprintf(mqttCommandTopic, 64, "%s/%s/%s/set", controllerName.c_str(), EDUtils::getChipID(), name.c_str());
 
         _config.mqttStateTopic = mqttStateTopic;
         _config.mqttCommandTopic = mqttCommandTopic;
@@ -100,7 +100,7 @@ bool EDCommon::Light::WBLedCCT::init(uint8_t cctChannel, std::initializer_list<W
             return std::tolower(c);
         });
 
-        std::string uniqueID = EDUtils::formatString("%s_%s_%s", discoveryObjectID, controllerName, EDUtils::getChipID());
+        std::string uniqueID = EDUtils::formatString("%s_%s_%s", discoveryObjectID.c_str(), controllerName.c_str(), EDUtils::getChipID());
 
         _config.discoveryMgr->addLight(
             _config.device,
@@ -253,5 +253,7 @@ std::pair<uint16_t, bool> EDCommon::Light::WBLedCCT::getTemperature()
 
 void EDCommon::Light::WBLedCCT::update()
 {
-    _mqttStateMgr->loop();
+    if (_mqttStateMgr != nullptr) {
+        _mqttStateMgr->loop();
+    }
 }

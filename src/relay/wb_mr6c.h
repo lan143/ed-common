@@ -35,7 +35,7 @@ namespace EDCommon
 
         using WBMR6COption = std::function<void(WBMR6CConfig&)>;
 
-        WBMR6COption withMQTT(EDMQTT::MQTT* mqtt, std::string topicPrefix, std::string controllerName, std::string name)
+        inline WBMR6COption withMQTT(EDMQTT::MQTT* mqtt, std::string topicPrefix, std::string controllerName, std::string name)
         {
             return [mqtt, topicPrefix, controllerName, name](WBMR6CConfig& c) {
                 c.hasMQTTSupport = true;
@@ -46,7 +46,7 @@ namespace EDCommon
             };
         }
 
-        WBMR6COption withDiscovery(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device)
+        inline WBMR6COption withDiscovery(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device)
         {
             return [discoveryMgr, device](WBMR6CConfig& c) {
                 c.hasDiscovery = true;
@@ -55,7 +55,7 @@ namespace EDCommon
             };
         }
 
-        WBMR6COption withTimeout(int64_t timeout)
+        inline WBMR6COption withTimeout(int64_t timeout)
         {
             return [timeout](WBMR6CConfig& c) {
                 c.hasTimeout = true;

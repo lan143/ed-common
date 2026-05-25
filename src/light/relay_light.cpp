@@ -22,13 +22,13 @@ bool EDCommon::Light::Relay::init(std::initializer_list<RelayOption> options)
             return std::tolower(c);
         });
 
-        snprintf(mqttStateTopic, 64, "%s/%s/state", _config.topicPrefix, name);
-        snprintf(mqttCommandTopic, 64, "%s/%s/set", _config.topicPrefix, name);
+        snprintf(mqttStateTopic, 64, "%s/%s/state", _config.topicPrefix.c_str(), name.c_str());
+        snprintf(mqttCommandTopic, 64, "%s/%s/set", _config.topicPrefix.c_str(), name.c_str());
 
         _config.mqttStateTopic = mqttStateTopic;
         _config.mqttCommandTopic = mqttCommandTopic;
 
-        LOGD("WBLedCCT::init", "command topic: %s, state topic: %s", _config.mqttStateTopic.c_str(), _config.mqttCommandTopic.c_str());
+        LOGD("RelayLight::init", "command topic: %s, state topic: %s", _config.mqttStateTopic.c_str(), _config.mqttCommandTopic.c_str());
 
         auto stateProducer = new StateProducer(_config.mqtt);
         stateProducer->init(_config.mqttStateTopic.c_str());
@@ -53,7 +53,7 @@ bool EDCommon::Light::Relay::init(std::initializer_list<RelayOption> options)
             return std::tolower(c);
         });
 
-        std::string uniqueID = EDUtils::formatString("%s_%s_%s", discoveryObjectID, controllerName, EDUtils::getChipID());
+        std::string uniqueID = EDUtils::formatString("%s_%s_%s", discoveryObjectID.c_str(), controllerName.c_str(), EDUtils::getChipID());
 
         _config.discoveryMgr->addLight(
             _config.device,
