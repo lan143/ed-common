@@ -2,9 +2,9 @@
 
 #include <discovery.h>
 #include <mqtt.h>
-#include <state/state_mgr.h>
 
 #include "light.h"
+#include "mqtt/state_producer.h"
 #include "mqtt/state.h"
 #include "relay/relay.h"
 
@@ -61,11 +61,16 @@ namespace EDCommon
             void update();
 
         private:
-            RelayConfig _config; 
+            bool publishState();
+
+        private:
+            RelayConfig _config;
+            MQTTState _mqttState;
+            int64_t _lastPublishStateTime = 0;
 
         private:
             EDCommon::Relay::Relay* _relay = nullptr;
-            EDUtils::StateMgr<MQTTState>* _mqttStateMgr = nullptr;
+            StateProducer* _stateProducer = nullptr;
         };
     }
 }

@@ -60,6 +60,7 @@ void EDCommon::BinarySensor::WBMR6C::update()
 {
     if ((_lastUpdateTime + 200000) < esp_timer_get_time()) {
         auto result = _mr6c->getInputChannelState(_config.channel);
+
         if (result.second && _contact != result) {
             if (!_config.mqtt->publish(_config.mqttStateTopic.c_str(), result.first ? "false" : "true", true)) {
                 LOGE("update", "failed to publish update binary state");

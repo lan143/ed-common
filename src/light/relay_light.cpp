@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <log/log.h>
 
-#include "mqtt/state_producer.h"
 #include "mqtt/command_consumer.h"
 #include "relay_light.h"
 
@@ -30,9 +29,8 @@ bool EDCommon::Light::Relay::init(std::initializer_list<RelayOption> options)
 
         LOGD("RelayLight::init", "command topic: %s, state topic: %s", _config.mqttStateTopic.c_str(), _config.mqttCommandTopic.c_str());
 
-        auto stateProducer = new StateProducer(_config.mqtt);
-        stateProducer->init(_config.mqttStateTopic.c_str());
-        _mqttStateMgr = new EDUtils::StateMgr<MQTTState>(stateProducer);
+        _stateProducer = new StateProducer(_config.mqtt);
+        _stateProducer->init(_config.mqttStateTopic.c_str());
 
         auto commandConsumer = new MQTTCommandConsumer(this);
         commandConsumer->init(_config.mqttCommandTopic.c_str());
@@ -78,9 +76,8 @@ bool EDCommon::Light::Relay::setState(bool enable)
         return false;
     }
 
-    if (_mqttStateMgr != nullptr) {
-        _mqttStateMgr->getState().setEnabled(enable);
-    }
+    _mqttState.setEnabled(enable);
+    publishState();
 
     return true;
 }
@@ -94,7 +91,23 @@ void EDCommon::Light::Relay::update()
 {
     _relay->update();
 
-    if (_mqttStateMgr != nullptr) {
-        _mqttStateMgr->loop();
+    if ((_lastPublishStateTime + 60000000) < esp_timer_get_time()) {
+        publishState();
     }
+}
+
+bool EDCommon::Light::Relay::publishState()
+{
+    if (_stateProducer == nullptr) {
+        return true;
+    }
+
+    auto result = _stateProducer->publish(&_mqttState);
+    if (!result) {
+        return false;
+    }
+
+    _lastPublishStateTime = esp_timer_get_time();
+
+    return true;
 }
