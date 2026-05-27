@@ -69,6 +69,9 @@ bool EDCommon::Relay::WBMR6C::init(uint8_t channel, std::initializer_list<WBMR6C
             ->setStateOff("off");
     }
 
+    auto enabledResult = isEnabled();
+    setState(enabledResult.first);
+
     return true;
 }
 

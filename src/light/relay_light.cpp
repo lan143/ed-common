@@ -66,6 +66,9 @@ bool EDCommon::Light::Relay::init(std::initializer_list<RelayOption> options)
             ->setPayloadOff("off");
     }
 
+    auto enabledResult = isEnabled();
+    setState(enabledResult.first);
+
     return true;
 }
 
