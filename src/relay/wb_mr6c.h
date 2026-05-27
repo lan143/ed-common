@@ -4,10 +4,10 @@
 #include <device/wb_mr6c.h>
 #include <discovery.h>
 #include <mqtt.h>
-#include <state/state_mgr.h>
 
 #include "relay.h"
 #include "mqtt/state.h"
+#include "mqtt/state_producer.h"
 
 namespace EDCommon
 {
@@ -75,11 +75,16 @@ namespace EDCommon
             void update();
 
         private:
+            bool publishState();
+
+        private:
             EDWB::MR6C* _mr6c = nullptr;
-            EDUtils::StateMgr<MQTTState>* _mqttStateMgr = nullptr;
+            StateProducer* _stateProducer = nullptr;
 
         private:
             WBMR6CConfig _config;
+            MQTTState _mqttState;
+            int64_t _lastPublishStateTime = 0;
             int64_t _lastEnabledTime = 0;
             int64_t _lastTimeoutCheckTime = 0;
         };

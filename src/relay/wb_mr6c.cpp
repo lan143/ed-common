@@ -2,7 +2,6 @@
 #include <log/log.h>
 
 #include "wb_mr6c.h"
-#include "mqtt/state_producer.h"
 #include "mqtt/command_consumer.h"
 
 bool EDCommon::Relay::WBMR6C::init(uint8_t channel, std::initializer_list<WBMR6COption> options)
@@ -31,9 +30,8 @@ bool EDCommon::Relay::WBMR6C::init(uint8_t channel, std::initializer_list<WBMR6C
 
         LOGD("Relay::init", "command topic: %s, state topic: %s", _config.mqttStateTopic.c_str(), _config.mqttCommandTopic.c_str());
 
-        auto stateProducer = new StateProducer(_config.mqtt);
-        stateProducer->init(_config.mqttStateTopic.c_str());
-        _mqttStateMgr = new EDUtils::StateMgr<MQTTState>(stateProducer);
+        _stateProducer = new StateProducer(_config.mqtt);
+        _stateProducer->init(_config.mqttStateTopic.c_str());
 
         auto commandConsumer = new MQTTCommandConsumer(this);
         commandConsumer->init(_config.mqttCommandTopic.c_str());
@@ -81,9 +79,8 @@ bool EDCommon::Relay::WBMR6C::setState(bool enable)
         return false;
     }
 
-    if (_mqttStateMgr != nullptr) {
-        _mqttStateMgr->getState().setState(enable);
-    }
+    _mqttState.setState(enable);
+    publishState();
 
     _lastEnabledTime = esp_timer_get_time();
 
@@ -97,8 +94,8 @@ std::pair<bool, bool> EDCommon::Relay::WBMR6C::isEnabled()
 
 void EDCommon::Relay::WBMR6C::update()
 {
-    if (_mqttStateMgr != nullptr) {
-        _mqttStateMgr->loop();
+    if ((_lastPublishStateTime + 60000000) < esp_timer_get_time()) {
+        publishState();
     }
 
     if (_config.hasTimeout && (_lastTimeoutCheckTime + 1000000) < esp_timer_get_time()) {
@@ -109,4 +106,20 @@ void EDCommon::Relay::WBMR6C::update()
 
         _lastTimeoutCheckTime = esp_timer_get_time();
     }
+}
+
+bool EDCommon::Relay::WBMR6C::publishState()
+{
+    if (_stateProducer == nullptr) {
+        return true;
+    }
+
+    auto result = _stateProducer->publish(&_mqttState);
+    if (!result) {
+        return false;
+    }
+
+    _lastPublishStateTime = esp_timer_get_time();
+
+    return true;
 }
