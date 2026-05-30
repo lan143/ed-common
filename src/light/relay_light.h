@@ -27,6 +27,11 @@ namespace EDCommon
             EDHA::Device* device = nullptr;
         };
 
+        struct RelayCommand
+        {
+            bool enable;
+        };
+
         using RelayOption = std::function<void(RelayConfig&)>;
 
         inline RelayOption withMQTT(EDMQTT::MQTT* mqtt, std::string topicPrefix, std::string controllerName, std::string name)
@@ -52,7 +57,11 @@ namespace EDCommon
         class Relay : public Light
         {
         public:
-            Relay(EDCommon::Relay::Relay* relay) : _relay(relay) {}
+            Relay(EDCommon::Relay::Relay* relay) : _relay(relay)
+            {
+                _commandQueue = xQueueCreate(10, sizeof(RelayCommand));
+            }
+
             bool init(std::initializer_list<RelayOption> options);
 
             bool setState(bool enable);
@@ -62,10 +71,12 @@ namespace EDCommon
 
         private:
             bool publishState();
+            void setStateInternal(bool enable);
 
         private:
             RelayConfig _config;
             MQTTState _mqttState;
+            QueueHandle_t _commandQueue;
             int64_t _lastPublishStateTime = 0;
 
         private:

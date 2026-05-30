@@ -33,6 +33,11 @@ namespace EDCommon
             int64_t timeout = 0;
         };
 
+        struct WBMR6CCommand
+        {
+            bool enable;
+        };
+
         using WBMR6COption = std::function<void(WBMR6CConfig&)>;
 
         inline WBMR6COption withMQTT(EDMQTT::MQTT* mqtt, std::string topicPrefix, std::string controllerName, std::string name)
@@ -66,7 +71,11 @@ namespace EDCommon
         class WBMR6C : public Relay
         {
         public:
-            WBMR6C(EDWB::MR6C* mr6c) : _mr6c(mr6c) {}
+            WBMR6C(EDWB::MR6C* mr6c) : _mr6c(mr6c)
+            {
+                _commandQueue = xQueueCreate(10, sizeof(WBMR6CCommand));
+            }
+
             bool init(uint8_t channel, std::initializer_list<WBMR6COption> options);
 
             bool setState(bool enable);
@@ -76,6 +85,7 @@ namespace EDCommon
 
         private:
             bool publishState();
+            bool setStateInternal(bool enable);
 
         private:
             EDWB::MR6C* _mr6c = nullptr;
@@ -84,6 +94,7 @@ namespace EDCommon
         private:
             WBMR6CConfig _config;
             MQTTState _mqttState;
+            QueueHandle_t _commandQueue;
             int64_t _lastPublishStateTime = 0;
             int64_t _lastEnabledTime = 0;
             int64_t _lastTimeoutCheckTime = 0;

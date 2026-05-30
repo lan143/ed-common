@@ -74,13 +74,11 @@ bool EDCommon::Light::Relay::init(std::initializer_list<RelayOption> options)
 
 bool EDCommon::Light::Relay::setState(bool enable)
 {
-    if (!_relay->setState(enable)) {
-        LOGE("light", "failed to change light state");
+    RelayCommand cmd;
+    cmd.enable = enable;
+    if (xQueueSend(_commandQueue, &cmd, 0) != pdTRUE) {
         return false;
     }
-
-    _mqttState.setEnabled(enable);
-    publishState();
 
     return true;
 }
@@ -92,6 +90,11 @@ std::pair<bool, bool> EDCommon::Light::Relay::isEnabled()
 
 void EDCommon::Light::Relay::update()
 {
+    RelayCommand cmd;
+    while (xQueueReceive(_commandQueue, &cmd, 0) == pdTRUE) {
+        setStateInternal(cmd.enable);
+    }
+
     _relay->update();
 
     if ((_lastPublishStateTime + 60000000) < esp_timer_get_time()) {
@@ -113,4 +116,15 @@ bool EDCommon::Light::Relay::publishState()
     _lastPublishStateTime = esp_timer_get_time();
 
     return true;
+}
+
+void EDCommon::Light::Relay::setStateInternal(bool enable)
+{
+    if (!_relay->setState(enable)) {
+        LOGE("light", "failed to change light state");
+        return;
+    }
+
+    _mqttState.setEnabled(enable);
+    publishState();
 }

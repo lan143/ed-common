@@ -75,28 +75,29 @@ bool EDCommon::Relay::WBMR6C::init(uint8_t channel, std::initializer_list<WBMR6C
     return true;
 }
 
-bool EDCommon::Relay::WBMR6C::setState(bool enable)
-{
-    if (!_mr6c->setRelayChannelState(_config.channel, enable)) {
-        LOGE("relay", "failed to change relay state");
-        return false;
-    }
-
-    _mqttState.setState(enable);
-    publishState();
-
-    _lastEnabledTime = esp_timer_get_time();
-
-    return true;
-}
-
 std::pair<bool, bool> EDCommon::Relay::WBMR6C::isEnabled()
 {
     return _mr6c->getRelayChannelState(_config.channel);
 }
 
+bool EDCommon::Relay::WBMR6C::setState(bool enable)
+{
+    WBMR6CCommand cmd;
+    cmd.enable = enable;
+    if (xQueueSend(_commandQueue, &cmd, 0) != pdTRUE) {
+        return false;
+    }
+
+    return true;
+}
+
 void EDCommon::Relay::WBMR6C::update()
 {
+    WBMR6CCommand cmd;
+    while (xQueueReceive(_commandQueue, &cmd, 0) == pdTRUE) {
+        setStateInternal(cmd.enable);
+    }
+
     if ((_lastPublishStateTime + 60000000) < esp_timer_get_time()) {
         publishState();
     }
@@ -123,6 +124,21 @@ bool EDCommon::Relay::WBMR6C::publishState()
     }
 
     _lastPublishStateTime = esp_timer_get_time();
+
+    return true;
+}
+
+bool EDCommon::Relay::WBMR6C::setStateInternal(bool enable)
+{
+    if (!_mr6c->setRelayChannelState(_config.channel, enable)) {
+        LOGE("relay", "failed to change relay state");
+        return false;
+    }
+
+    _mqttState.setState(enable);
+    publishState();
+
+    _lastEnabledTime = esp_timer_get_time();
 
     return true;
 }
