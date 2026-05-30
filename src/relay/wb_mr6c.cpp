@@ -1,8 +1,6 @@
-#include <algorithm>
 #include <log/log.h>
 
 #include "wb_mr6c.h"
-#include "mqtt/command_consumer.h"
 
 bool EDCommon::Relay::WBMR6C::setStateInternal(bool enable)
 {

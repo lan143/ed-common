@@ -26,7 +26,6 @@ namespace EDCommon
             }
 
         private:
-            bool publishState();
             bool setStateInternal(bool enable);
             std::pair<bool, bool> isEnabledInternal();
 

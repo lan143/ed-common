@@ -4,11 +4,16 @@
 
 void EDCommon::Relay::MQTTCommandConsumer::consume(std::string payload)
 {
-    LOGD("mqtt_command_consumer", "handle");
+    LOGD("mqtt_command_consumer", "handle relay command");
 
+    bool enable;
     if (payload == "on") {
-        _relay->setState(true);
+        enable = true;
     } else if (payload == "off") {
-        _relay->setState(false);
+        enable = false;
+    }
+
+    if (!_relay->setState(enable)) {
+        LOGE("mqtt_command_consumer", "failed to handle relay command");
     }
 }

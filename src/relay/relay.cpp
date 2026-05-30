@@ -91,11 +91,22 @@ void EDCommon::Relay::Relay::update()
 {
     bool cmd;
     while (xQueueReceive(_commandQueue, &cmd, 0) == pdTRUE) {
-        setStateInternal(cmd);
+        if (setStateInternal(cmd)) {
+            _mqttState.setState(cmd);
+            publishState();
+
+            if (cmd) {
+                _lastEnabledTime = esp_timer_get_time();
+            }
+        } else {
+            LOGE("update", "failed to handle command");
+        }
     }
 
     if ((_lastPublishStateTime + 60000000) < esp_timer_get_time()) {
-        publishState();
+        if (!publishState()) {
+            LOGE("update", "failed to publish state");
+        }
     }
 
     if (_config.hasTimeout && (_lastTimeoutCheckTime + 1000000) < esp_timer_get_time()) {
@@ -118,6 +129,8 @@ bool EDCommon::Relay::Relay::publishState()
     if (!result) {
         return false;
     }
+
+    LOGD("publishState", "publish state");
 
     _lastPublishStateTime = esp_timer_get_time();
 
