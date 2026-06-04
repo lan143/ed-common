@@ -18,16 +18,16 @@ void EDCommon::Light::MQTTCommandConsumer::consume(std::string payload)
             return;
         }
 
-        if (_dimmer && command.getBrightness().second) {
-            _dimmer->setBrightness(command.getBrightness().first);
+        if (_light->hasBrightnessControl() && command.getBrightness().second) {
+            _light->setBrightness(command.getBrightness().first);
         }
 
-        if (_colorTemperatureSetter && command.getTempColor().second) {
-            _colorTemperatureSetter->setTemperature(command.getTempColor().first);
+        if (_light->hasTemperatureControl() && command.getTempColor().second) {
+            _light->setTemperature(command.getTempColor().first);
         }
 
-        if (_colorSetter && command.getColor().second) {
-            _colorSetter->setColor(command.getColor().first);
+        if (_light->hasColorControl() && command.getColor().second) {
+            _light->setColor(command.getColor().first);
         }
     }
 }

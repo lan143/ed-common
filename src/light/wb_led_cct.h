@@ -1,93 +1,37 @@
 #pragma once
 
 #include <device/wb_led.h>
-#include <discovery.h>
-#include <state/state_mgr.h>
 
 #include "light.h"
-#include "mqtt/state.h"
 
 namespace EDCommon
 {
     namespace Light
     {
-        struct WBLedCCTConfig
-        {
-            uint8_t switchChannel = 0;
-
-            bool hasMQTTSupport = false;
-            EDMQTT::MQTT* mqtt = nullptr;
-            std::string controllerName;
-            std::string name;
-            std::string mqttCommandTopic;
-            std::string mqttStateTopic;
-
-            bool hasDiscovery = false;
-            EDHA::DiscoveryMgr* discoveryMgr = nullptr;
-            EDHA::Device* device = nullptr;
-
-            uint16_t minTemperature = 2700;
-            uint16_t maxTemperature = 6000;
-        };
-
-        using WBLedCCTOption = std::function<void(WBLedCCTConfig&)>;
-
-        inline WBLedCCTOption withSwitchChannel(uint8_t channel)
-        {
-            return [channel](WBLedCCTConfig& c) { c.switchChannel = channel; };
-        }
-
-        inline WBLedCCTOption withMQTT(EDMQTT::MQTT* mqtt, std::string controllerName, std::string name)
-        {
-            return [mqtt, controllerName, name](WBLedCCTConfig& c) {
-                c.hasMQTTSupport = true;
-                c.mqtt = mqtt;
-                c.controllerName = controllerName;
-                c.name = name;
-            };
-        }
-
-        inline WBLedCCTOption withDiscovery(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device)
-        {
-            return [discoveryMgr, device](WBLedCCTConfig& c) {
-                c.hasDiscovery = true;
-                c.discoveryMgr = discoveryMgr;
-                c.device = device;
-            };
-        }
-
-        inline WBLedCCTOption withTemperature(uint16_t minTemperature, uint16_t maxTemperature)
-        {
-            return [minTemperature, maxTemperature](WBLedCCTConfig& c) {
-                c.minTemperature = minTemperature;
-                c.maxTemperature = maxTemperature;
-            };
-        }
-
-        class WBLedCCT : public Light, public Dimmer, public ColorTemperatureSetter
+        class WBLedCCT : public Light
         {
         public:
             WBLedCCT(EDWB::LED* led) : _led(led) { }
-            bool init(uint8_t cctChannel, std::initializer_list<WBLedCCTOption> options);
+            bool init(uint8_t cctChannel, std::initializer_list<LightOption> options, uint8_t switchChannel = 0);
 
-            bool setState(bool enable);
-            std::pair<bool, bool> isEnabled();
+            std::pair<bool, bool> isEnabled() override;
+            std::pair<uint8_t, bool> getBrightness() override;
+            std::pair<uint16_t, bool> getTemperature() override;
 
-            bool setBrightness(uint8_t brightness);
-            std::pair<uint8_t, bool> getBrightness();
+            bool hasBrightnessControl() const override { return true; };
+            bool hasTemperatureControl() const override { return true; };
 
-            bool setTemperature(uint16_t temperature);
-            std::pair<uint16_t, bool> getTemperature();
-
-            void update();
+        protected:
+            bool setStateInternal(bool enable) override;
+            bool setBrightnessInternal(uint8_t brightness) override;
+            bool setTemperatureInternal(uint16_t temperature) override;
 
         private:
-            WBLedCCTConfig _config; 
             uint8_t _cctChannel;
+            uint8_t _switchChannel;
 
         private:
             EDWB::LED* _led = nullptr;
-            EDUtils::StateMgr<MQTTState>* _mqttStateMgr = nullptr;
         };
     }
 }

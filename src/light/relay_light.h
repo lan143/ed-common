@@ -12,76 +12,18 @@ namespace EDCommon
 {
     namespace Light
     {
-        struct RelayConfig
-        {
-            bool hasMQTTSupport = false;
-            EDMQTT::MQTT* mqtt = nullptr;
-            std::string topicPrefix;
-            std::string controllerName;
-            std::string name;
-            std::string mqttCommandTopic;
-            std::string mqttStateTopic;
-
-            bool hasDiscovery = false;
-            EDHA::DiscoveryMgr* discoveryMgr = nullptr;
-            EDHA::Device* device = nullptr;
-        };
-
-        struct RelayCommand
-        {
-            bool enable;
-        };
-
-        using RelayOption = std::function<void(RelayConfig&)>;
-
-        inline RelayOption withMQTT(EDMQTT::MQTT* mqtt, std::string topicPrefix, std::string controllerName, std::string name)
-        {
-            return [mqtt, topicPrefix, controllerName, name](RelayConfig& c) {
-                c.hasMQTTSupport = true;
-                c.mqtt = mqtt;
-                c.topicPrefix = topicPrefix;
-                c.controllerName = controllerName;
-                c.name = name;
-            };
-        }
-
-        inline RelayOption withDiscovery(EDHA::DiscoveryMgr* discoveryMgr, EDHA::Device* device)
-        {
-            return [discoveryMgr, device](RelayConfig& c) {
-                c.hasDiscovery = true;
-                c.discoveryMgr = discoveryMgr;
-                c.device = device;
-            };
-        }
-
         class Relay : public Light
         {
         public:
-            Relay(EDCommon::Relay::Relay* relay) : _relay(relay)
-            {
-                _commandQueue = xQueueCreate(10, sizeof(RelayCommand));
-            }
+            Relay(EDCommon::Relay::Relay* relay) : _relay(relay) { }
 
-            bool init(std::initializer_list<RelayOption> options);
+            std::pair<bool, bool> isEnabled() override { return _relay->isEnabled(); }
 
-            bool setState(bool enable);
-            std::pair<bool, bool> isEnabled();
-
-            void update();
-
-        private:
-            bool publishState();
-            void setStateInternal(bool enable);
-
-        private:
-            RelayConfig _config;
-            MQTTState _mqttState;
-            QueueHandle_t _commandQueue;
-            int64_t _lastPublishStateTime = 0;
+        protected:
+            bool setStateInternal(bool enable) override { return _relay->setState(enable); }
 
         private:
             EDCommon::Relay::Relay* _relay = nullptr;
-            StateProducer* _stateProducer = nullptr;
         };
     }
 }

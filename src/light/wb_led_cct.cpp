@@ -5,13 +5,12 @@
 #include "mqtt/command_consumer.h"
 #include "wb_led_cct.h"
 
-bool EDCommon::Light::WBLedCCT::init(uint8_t cctChannel, std::initializer_list<WBLedCCTOption> options)
+bool EDCommon::Light::WBLedCCT::init(uint8_t cctChannel, std::initializer_list<LightOption> options, uint8_t switchChannel /* = 0 */)
 {
-    _cctChannel = cctChannel;
+    Light::init(options);
 
-    for (auto& opt : options) {
-        opt(_config);
-    }
+    _cctChannel = cctChannel;
+    switchChannel = switchChannel;
 
     EDWB::LEDMode mode;
     switch (cctChannel) {
@@ -31,106 +30,33 @@ bool EDCommon::Light::WBLedCCT::init(uint8_t cctChannel, std::initializer_list<W
         return false;
     }
 
-    if (_config.switchChannel > 0) {
-        if (!_led->setInputMode(_config.switchChannel, true)) {
+    if (_switchChannel > 0) {
+        if (!_led->setInputMode(_switchChannel, true)) {
             LOGE("WBLedCCT::init", "failed to set input mode");
             return false;
         }
 
-        if (!_led->setSafeMode(_config.switchChannel, EDWB::SAFE_MODE_DONT_BLOCK_INPUT)) {
+        if (!_led->setSafeMode(_switchChannel, EDWB::SAFE_MODE_DONT_BLOCK_INPUT)) {
             LOGE("WBLedCCT::init", "failed to set safe mode");
             return false;
         }
 
-        if (!_led->setInputActionRaw(_config.switchChannel, EDWB::INPUT_TYPE_SHORT_CLICK, 0x3007)) { // switch cct @todo: add support cct2
+        if (!_led->setInputActionRaw(_switchChannel, EDWB::INPUT_TYPE_SHORT_CLICK, 0x3007)) { // switch cct @todo: add support cct2
             LOGE("WBLedCCT::init", "failed to set input action raw");
             return false;
         }
 
-        if (!_led->setInputActionRaw(_config.switchChannel, EDWB::INPUT_TYPE_LONG_CLICK, 0xB008)) { // change cct brightness @todo: add support cct2
+        if (!_led->setInputActionRaw(_switchChannel, EDWB::INPUT_TYPE_LONG_CLICK, 0xB008)) { // change cct brightness @todo: add support cct2
             LOGE("WBLedCCT::init", "failed to set input action raw");
             return false;
         }
     }
 
-    if (_config.hasMQTTSupport) {
-        char mqttStateTopic[64] = {0};
-        char mqttCommandTopic[64] = {0};
-        std::string controllerName = _config.controllerName;
-        std::string name = _config.name;
-
-        std::replace(controllerName.begin(), controllerName.end(), ' ', '_');
-        std::transform(controllerName.begin(), controllerName.end(), controllerName.begin(), [](unsigned char c) {
-            return std::tolower(c);
-        });
-
-        std::replace(name.begin(), name.end(), ' ', '_');
-        std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) {
-            return std::tolower(c);
-        });
-
-        snprintf(mqttStateTopic, 64, "%s/%s/%s/state", controllerName.c_str(), EDUtils::getChipID(), name.c_str());
-        snprintf(mqttCommandTopic, 64, "%s/%s/%s/set", controllerName.c_str(), EDUtils::getChipID(), name.c_str());
-
-        _config.mqttStateTopic = mqttStateTopic;
-        _config.mqttCommandTopic = mqttCommandTopic;
-
-        LOGD("WBLedCCT::init", "command topic: %s, state topic: %s", _config.mqttStateTopic.c_str(), _config.mqttCommandTopic.c_str());
-
-        auto stateProducer = new StateProducer(_config.mqtt);
-        stateProducer->init(_config.mqttStateTopic.c_str());
-        _mqttStateMgr = new EDUtils::StateMgr<MQTTState>(stateProducer);
-
-        auto commandConsumer = new MQTTCommandConsumer(this);
-        commandConsumer->init(_config.mqttCommandTopic.c_str());
-        _config.mqtt->subscribe(commandConsumer);
-    }
-
-    if (_config.hasDiscovery && _config.hasMQTTSupport) {
-        std::string discoveryObjectID = _config.name;
-        std::string controllerName = _config.controllerName;
-
-        std::replace(controllerName.begin(), controllerName.end(), ' ', '_');
-        std::transform(controllerName.begin(), controllerName.end(), controllerName.begin(), [](unsigned char c) {
-            return std::tolower(c);
-        });
-
-        std::replace(discoveryObjectID.begin(), discoveryObjectID.end(), ' ', '_');
-        std::transform(discoveryObjectID.begin(), discoveryObjectID.end(), discoveryObjectID.begin(), [](unsigned char c) {
-            return std::tolower(c);
-        });
-
-        std::string uniqueID = EDUtils::formatString("%s_%s_%s", discoveryObjectID.c_str(), controllerName.c_str(), EDUtils::getChipID());
-
-        _config.discoveryMgr->addLight(
-            _config.device,
-            _config.name,
-            discoveryObjectID,
-            uniqueID
-        )
-            ->setCommandTopic(_config.mqttCommandTopic)
-            ->setStateTopic(_config.mqttStateTopic)
-            ->setStateValueTemplate("{{ value_json.enabled }}")
-            ->setPayloadOn("on")
-            ->setPayloadOff("off")
-            ->setBrightnessCommandTopic(_config.mqttCommandTopic)
-            ->setBrightnessCommandTemplate("{\"brightness\": {{ value }} }")
-            ->setBrightnessStateTopic(_config.mqttStateTopic)
-            ->setBrightnessValueTemplate("{{ value_json.brightness }}")
-            ->setBrightnessScale(100)
-            ->setColorTempKelvin(true)
-            ->setColorTempCommandTemplate("{\"tempColor\": {{ value }} }")
-            ->setColorTempCommandTopic(_config.mqttCommandTopic)
-            ->setColorTempStateTopic(_config.mqttStateTopic)
-            ->setColorTempValueTemplate("{{ value_json.tempColor }}")
-            ->setMinKelvin(2700) // @todo: move to options
-            ->setMaxKelvin(6000); // @todo: move to options
-    }
 
     return true;
 }
 
-bool EDCommon::Light::WBLedCCT::setState(bool enable)
+bool EDCommon::Light::WBLedCCT::setStateInternal(bool enable)
 {
     auto result = isEnabled();
 
@@ -147,6 +73,7 @@ bool EDCommon::Light::WBLedCCT::setState(bool enable)
             case 2:
                 return _led->enableCCT2(enable);
             default:
+                LOGE("setStateInternal", "unsupported cct channel");
                 return false;
         }
     }
@@ -172,7 +99,7 @@ std::pair<bool, bool> EDCommon::Light::WBLedCCT::isEnabled()
     return {result._value, result._success};
 }
 
-bool EDCommon::Light::WBLedCCT::setBrightness(uint8_t brightness)
+bool EDCommon::Light::WBLedCCT::setBrightnessInternal(uint8_t brightness)
 {
     auto result = getBrightness();
     if (!result.second) {
@@ -211,7 +138,7 @@ std::pair<uint8_t, bool> EDCommon::Light::WBLedCCT::getBrightness()
     return {result._value, result._success};
 }
 
-bool EDCommon::Light::WBLedCCT::setTemperature(uint16_t temperature)
+bool EDCommon::Light::WBLedCCT::setTemperatureInternal(uint16_t temperature)
 {
     auto result = getTemperature();
     if (!result.second) {
@@ -249,11 +176,4 @@ std::pair<uint16_t, bool> EDCommon::Light::WBLedCCT::getTemperature()
     }
 
     return {map(result._value, 0, 100, 2700, 6000), result._success};
-}
-
-void EDCommon::Light::WBLedCCT::update()
-{
-    if (_mqttStateMgr != nullptr) {
-        _mqttStateMgr->loop();
-    }
 }
