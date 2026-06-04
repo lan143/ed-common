@@ -10,7 +10,7 @@ bool EDCommon::Light::WBLedCCT::init(uint8_t cctChannel, std::initializer_list<L
     Light::init(options);
 
     _cctChannel = cctChannel;
-    switchChannel = switchChannel;
+    _switchChannel = switchChannel;
 
     EDWB::LEDMode mode;
     switch (cctChannel) {
