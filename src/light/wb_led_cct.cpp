@@ -1,11 +1,8 @@
-#include <algorithm>
 #include <log/log.h>
 
-#include "mqtt/state_producer.h"
-#include "mqtt/command_consumer.h"
 #include "wb_led_cct.h"
 
-bool EDCommon::Light::WBLedCCT::init(uint8_t cctChannel, std::initializer_list<LightOption> options, uint8_t switchChannel /* = 0 */)
+bool EDCommon::Light::WBLedCCT::init(uint8_t cctChannel, uint8_t switchChannel /* = 0 */, std::initializer_list<LightOption> options /* = {} */)
 {
     Light::init(options);
 
