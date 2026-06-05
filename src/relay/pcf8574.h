@@ -1,18 +1,18 @@
 #pragma once
 
 #include <Arduino.h>
-#include <device/wb_mr6c.h>
+#include <PCF8574.h>
 
-#include "relay.h"
+#include "./relay.h"
 
 namespace EDCommon
 {
     namespace Relay
     {
-        class WBMR6C : public Relay
+        class PCF8574P : public Relay
         {
         public:
-            WBMR6C(EDWB::MR6C* mr6c) : Relay(), _mr6c(mr6c) { }
+            PCF8574P(PCF8574* driver) : _driver(driver) {}
 
             bool init(uint8_t channel, std::initializer_list<RelayOption> options)
             {
@@ -26,10 +26,10 @@ namespace EDCommon
             std::pair<bool, bool> isEnabledInternal();
 
         private:
-            EDWB::MR6C* _mr6c = nullptr;
+            uint8_t _channel;
 
         private:
-            uint8_t _channel;
+            PCF8574* _driver = nullptr;
         };
     }
 }
