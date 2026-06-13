@@ -1,6 +1,5 @@
 #include "./binary_sensor.h"
 
-
 bool EDCommon::BinarySensor::BinarySensor::init(int64_t updateInterval, std::initializer_list<Option> options)
 {
     if (!preInit()) {
@@ -15,7 +14,7 @@ bool EDCommon::BinarySensor::BinarySensor::init(int64_t updateInterval, std::ini
     }
 
     if (_config.hasMQTTSupport) {
-        char mqttStateTopic[64] = {0};
+        char mqttStateTopic[256] = {0};
         std::string name = _config.name;
 
         std::replace(name.begin(), name.end(), ' ', '_');
@@ -23,11 +22,11 @@ bool EDCommon::BinarySensor::BinarySensor::init(int64_t updateInterval, std::ini
             return std::tolower(c);
         });
 
-        snprintf(mqttStateTopic, 64, "%s/%s/state", _config.topicPrefix.c_str(), name.c_str());
+        snprintf(mqttStateTopic, 256, "%s/%s/state", _config.topicPrefix.c_str(), name.c_str());
 
         _config.mqttStateTopic = mqttStateTopic;
 
-        LOGD("WaterLevel::init", "state topic: %s", _config.mqttStateTopic.c_str());
+        LOGD("init", "state topic: %s", _config.mqttStateTopic.c_str());
     }
 
     if (_config.hasDiscovery && _config.hasMQTTSupport) {
@@ -69,12 +68,12 @@ void EDCommon::BinarySensor::BinarySensor::update()
         if (_isActive.second) {
             bool publishResult = _config.reverse ? _config.mqtt->publish(_config.mqttStateTopic.c_str(), _isActive.first ? "false" : "true", true) : _config.mqtt->publish(_config.mqttStateTopic.c_str(), _isActive.first ? "true" : "false", true);
             if (!publishResult) {
-                LOGE("update", "failed to publish update binary state");
+                LOGE("update", "failed to publish update binary sensor state");
                 _lastUpdateTime = esp_timer_get_time();
                 return;
             }
         } else {
-            LOGE("update", "failed to get value from sensor");
+            LOGE("update", "failed to get value from binary sensor");
         }
 
         _lastUpdateTime = esp_timer_get_time();
