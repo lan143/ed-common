@@ -1,8 +1,14 @@
-#include "wb_mr6c.h"
+#include "./binary_sensor.h"
 
-bool EDCommon::BinarySensor::WBMR6C::init(uint8_t channel, std::initializer_list<WBMR6COption> options)
+
+bool EDCommon::BinarySensor::BinarySensor::init(int64_t updateInterval, std::initializer_list<Option> options)
 {
-    _config.channel = channel;
+    if (!preInit()) {
+        LOGE("init", "failed to run pre init");
+        return false;
+    }
+
+    _updateInterval = updateInterval * 1000;
 
     for (auto& opt : options) {
         opt(_config);
@@ -56,21 +62,19 @@ bool EDCommon::BinarySensor::WBMR6C::init(uint8_t channel, std::initializer_list
     return true;
 }
 
-void EDCommon::BinarySensor::WBMR6C::update()
+void EDCommon::BinarySensor::BinarySensor::update()
 {
-    if ((_lastUpdateTime + 200000) < esp_timer_get_time()) {
-        auto result = _mr6c->getInputChannelState(_config.channel);
-
-        if (result.second && _contact != result) {
-            if (!_config.mqtt->publish(_config.mqttStateTopic.c_str(), result.first ? "false" : "true", true)) {
+    if ((_lastUpdateTime + _updateInterval) < esp_timer_get_time()) {
+        _isActive = isActiveInternal();
+        if (_isActive.second) {
+            bool publishResult = _config.reverse ? _config.mqtt->publish(_config.mqttStateTopic.c_str(), _isActive.first ? "false" : "true", true) : _config.mqtt->publish(_config.mqttStateTopic.c_str(), _isActive.first ? "true" : "false", true);
+            if (!publishResult) {
                 LOGE("update", "failed to publish update binary state");
                 _lastUpdateTime = esp_timer_get_time();
                 return;
             }
-
-            _contact = result;
-        } else if (!result.second) {
-            LOGE("update", "failed to get MR6C input channel state");
+        } else {
+            LOGE("update", "failed to get value from sensor");
         }
 
         _lastUpdateTime = esp_timer_get_time();
