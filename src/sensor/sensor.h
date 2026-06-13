@@ -49,7 +49,7 @@ namespace EDCommon
         class Sensor
         {
         public:
-            bool init(std::initializer_list<SensorOption> options);
+            bool init(uint8_t precision, int64_t updateInterval, std::initializer_list<SensorOption> options);
             void update();
             std::pair<float_t, bool> getValue() { return _currentValue; }
 
@@ -64,6 +64,8 @@ namespace EDCommon
         private:
             std::pair<float_t, bool> _currentValue;
             int64_t _lastUpdateTime = 0;
+            float_t _precision = 0.0f;
+            int64_t _updateInterval = 0;
         };
     }
 }

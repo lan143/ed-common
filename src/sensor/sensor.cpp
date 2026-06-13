@@ -1,13 +1,17 @@
+#include <cmath>
 #include <log/log.h>
 
 #include "./sensor.h"
 
-bool EDCommon::Sensor::Sensor::init(std::initializer_list<SensorOption> options)
+bool EDCommon::Sensor::Sensor::init(uint8_t precision, int64_t updateInterval, std::initializer_list<SensorOption> options)
 {
     if (!preInit()) {
         LOGE("init", "failed to run pre init");
         return false;
     }
+
+    _precision = pow(10.0f, (float_t)precision);
+    _updateInterval = updateInterval * 1000;
 
     for (auto& opt : options) {
         opt(_config);
@@ -67,15 +71,22 @@ bool EDCommon::Sensor::Sensor::init(std::initializer_list<SensorOption> options)
 
 void EDCommon::Sensor::Sensor::update()
 {
-    if ((_lastUpdateTime + 10000000) < esp_timer_get_time()) {
+    if ((_lastUpdateTime + _updateInterval) < esp_timer_get_time()) {
         _currentValue = getValueInternal();
         if (_currentValue.second) {
-            auto payload = EDUtils::formatString("%f", _currentValue.first);
+            if (_precision != 0.0f) {
+                _currentValue.first = std::round(_currentValue.first * _precision) / _precision;
+            } else {
+                _currentValue.first = (float_t)((int)_currentValue.first);
+            }
+
+            int digits = _precision != 0.0f ? (int)std::round(std::log10(_precision)) : 0;
+            auto payload = EDUtils::formatString("%.*f", digits, _currentValue.first);
             if (!_config.mqtt->publish(_config.mqttStateTopic.c_str(), payload.c_str(), true)) {
                 LOGE("update", "failed to publish sensor update to mqtt");
             }
         } else {
-            LOGE("update", "failed to get value from sensoe");
+            LOGE("update", "failed to get value from sensor");
         }
 
         _lastUpdateTime = esp_timer_get_time();
