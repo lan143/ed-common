@@ -24,7 +24,7 @@ namespace EDCommon
 
             std::pair<float_t, bool> getValueInternal() override
             {
-                auto result = _msw->getCO2Value();
+                auto result = _msw->getLightLevel();
 
                 return {result._value, result._success};
             }
