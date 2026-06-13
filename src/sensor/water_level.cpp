@@ -2,77 +2,6 @@
 
 #include "water_level.h"
 
-bool EDCommon::Sensor::WaterLevel::init(std::initializer_list<WaterLevelOption> options)
-{
-    for (auto& opt : options) {
-        opt(_config);
-    }
-
-    if (_config.hasMQTTSupport) {
-        char mqttStateTopic[64] = {0};
-        std::string name = _config.name;
-
-        std::replace(name.begin(), name.end(), ' ', '_');
-        std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) {
-            return std::tolower(c);
-        });
-
-        snprintf(mqttStateTopic, 64, "%s/%s/state", _config.topicPrefix.c_str(), name.c_str());
-
-        _config.mqttStateTopic = mqttStateTopic;
-
-        LOGD("WaterLevel::init", "state topic: %s", _config.mqttStateTopic.c_str());
-    }
-
-    if (_config.hasDiscovery && _config.hasMQTTSupport) {
-        std::string discoveryObjectID = _config.name;
-        std::string controllerName = _config.controllerName;
-
-        std::replace(controllerName.begin(), controllerName.end(), ' ', '_');
-        std::transform(controllerName.begin(), controllerName.end(), controllerName.begin(), [](unsigned char c) {
-            return std::tolower(c);
-        });
-
-        std::replace(discoveryObjectID.begin(), discoveryObjectID.end(), ' ', '_');
-        std::transform(discoveryObjectID.begin(), discoveryObjectID.end(), discoveryObjectID.begin(), [](unsigned char c) {
-            return std::tolower(c);
-        });
-
-        std::string uniqueID = EDUtils::formatString("%s_%s_%s", discoveryObjectID.c_str(), controllerName.c_str(), EDUtils::getChipID());
-
-        _config.discoveryMgr->addSensor(
-            _config.device,
-            _config.name,
-            discoveryObjectID,
-            uniqueID
-        )
-            ->setStateTopic(_config.mqttStateTopic)
-            ->setValueTemplate("{{ value }}")
-            ->setUnitOfMeasurement("m");
-    }
-
-    _constantsLoaded = loadConstants();
-
-    return true;
-}
-
-void EDCommon::Sensor::WaterLevel::update()
-{
-    if ((_lastUpdateTime + 10000000) < esp_timer_get_time()) {
-        _currentValue = getWaterLevel();
-        if (_currentValue.second) {
-            auto payload = EDUtils::formatString("%f", _currentValue.first);
-            if (!_config.mqtt->publish(_config.mqttStateTopic.c_str(), payload.c_str(), true)) {
-                LOGE("update", "failed to publish water level update to mqtt");
-            }
-        } else {
-            LOGE("update", "failed to update current water level");
-        }
-
-        _lastUpdateTime = esp_timer_get_time();
-    }
-}
-
 bool EDCommon::Sensor::WaterLevel::loadConstants()
 {
     auto unitOfMeasurement = _qdy30a->getUnitOfMeasurement();
@@ -93,7 +22,7 @@ bool EDCommon::Sensor::WaterLevel::loadConstants()
     return true;
 }
 
-std::pair<float_t, bool> EDCommon::Sensor::WaterLevel::getWaterLevel()
+std::pair<float_t, bool> EDCommon::Sensor::WaterLevel::getValueInternal()
 {
     if (!_constantsLoaded) {
         _constantsLoaded = loadConstants();
