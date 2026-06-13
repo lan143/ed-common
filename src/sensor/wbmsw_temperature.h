@@ -18,6 +18,8 @@ namespace EDCommon
             {
                 _config.unitOfMeasurement = "°C";
                 _config.deviceClass = EDHA::deviceClassSensorTemperature;
+
+                return true;
             }
 
             std::pair<float_t, bool> getValueInternal() override
