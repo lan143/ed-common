@@ -53,7 +53,8 @@ bool EDCommon::Sensor::Sensor::init(std::initializer_list<SensorOption> options)
         )
             ->setStateTopic(_config.mqttStateTopic)
             ->setValueTemplate("{{ value }}")
-            ->setUnitOfMeasurement(_config.unitOfMeasurement);
+            ->setUnitOfMeasurement(_config.unitOfMeasurement)
+            ->setDeviceClass(_config.deviceClass);
     }
 
     if (!postInit()) {

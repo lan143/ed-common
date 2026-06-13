@@ -21,6 +21,7 @@ namespace EDCommon
             EDHA::DiscoveryMgr* discoveryMgr = nullptr;
             EDHA::Device* device = nullptr;
             std::string unitOfMeasurement;
+            std::string deviceClass;
         };
 
         using SensorOption = std::function<void(SensorConfig&)>;
@@ -53,8 +54,8 @@ namespace EDCommon
             std::pair<float_t, bool> getValue() { return _currentValue; }
 
         protected:
-            virtual bool preInit() {}
-            virtual bool postInit() {}
+            virtual bool preInit() { return true; }
+            virtual bool postInit() { return true; }
             virtual std::pair<float_t, bool> getValueInternal() { return {0.0f, false}; }
 
         protected:
