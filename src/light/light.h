@@ -86,10 +86,10 @@ namespace EDCommon
             virtual bool hasColorControl() const { return false; };
 
         protected:
-            virtual bool setStateInternal(bool enable) {}
-            virtual bool setBrightnessInternal(uint8_t brightness) {}
-            virtual bool setTemperatureInternal(uint16_t temperature) {}
-            virtual bool setColorInternal(CRGB color) {}
+            virtual bool setStateInternal(bool enable) { return false; }
+            virtual bool setBrightnessInternal(uint8_t brightness) { return false; }
+            virtual bool setTemperatureInternal(uint16_t temperature) { return false; }
+            virtual bool setColorInternal(CRGB color) { return false; }
 
         private:
             bool publishState();
