@@ -24,10 +24,10 @@ namespace EDCommon
             bool operator==(LightState& other)
             {
                 return enabled == other.enabled
-                    && nightMode != other.nightMode
-                    && brightness != other.brightness
-                    && color != other.color
-                    && temperature != other.temperature;
+                    && nightMode == other.nightMode
+                    && brightness == other.brightness
+                    && color == other.color
+                    && temperature == other.temperature;
             }
 
             bool operator!=(LightState& other)

@@ -10,7 +10,6 @@ bool EDCommon::Automation::Light::init(std::string stateFileName, std::initializ
 
     if (!_stateMgr->load()) {
         LOGE("init", "failed to load state from file");
-        return false;
     }
 
     for (auto& opt : options) {
