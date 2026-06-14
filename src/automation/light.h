@@ -41,25 +41,33 @@ namespace EDCommon
             Light(
                 EDCommon::Light::Light* mainLight,
                 EDCommon::Light::Light* backLight,
-                EDCommon::BinarySensor::BinarySensor* _humanDetector,
+                EDCommon::BinarySensor::BinarySensor* humanDetector,
                 EDCommon::Sensor::Sensor* lightLevel
-            ) : _mainLight(mainLight), _backLight(backLight), _humanDetector(_humanDetector),
-                _lightLevel(lightLevel) {}
+            ) : _mainLight(mainLight), _backLight(backLight), _humanDetector(humanDetector),
+                _lightLevel(lightLevel)
+            {
+                _commandQueue = xQueueCreate(10, sizeof(bool));
+            }
 
             bool init(std::initializer_list<Option> options);
             void update();
 
+            bool changeNightModeState(bool enable);
+
         private:
             void changeStateInternal(bool enabled, bool manual);
             void updateLight();
+            void publishState();
 
         private:
             Config _config;
             LightState _state;
+            QueueHandle_t _commandQueue;
             bool _manual = false;
             int64_t _lastUpdateTime = 0;
             int64_t _lastHumanDetectTime = 0;
             int64_t _lastManualControlTime = 0;
+            int64_t _lastPublishStateTime = 0;
             uint64_t _lightLowLevelCount = 0;
 
         private:

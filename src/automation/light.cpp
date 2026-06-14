@@ -1,4 +1,5 @@
-#include "light.h"
+#include "./mqtt/light_command_consumer.h"
+#include "./light.h"
 
 bool EDCommon::Automation::Light::init(std::initializer_list<Option> options)
 {
@@ -18,11 +19,15 @@ bool EDCommon::Automation::Light::init(std::initializer_list<Option> options)
             return std::tolower(c);
         });
 
-        snprintf(mqttStateTopic, 64, "%s/%s/state", _config.topicPrefix.c_str(), name.c_str());
-        snprintf(mqttCommandTopic, 64, "%s/%s/set", _config.topicPrefix.c_str(), name.c_str());
+        snprintf(mqttStateTopic, 256, "%s/%s/state", _config.topicPrefix.c_str(), name.c_str());
+        snprintf(mqttCommandTopic, 256, "%s/%s/set", _config.topicPrefix.c_str(), name.c_str());
 
         _config.mqttStateTopic = mqttStateTopic;
         _config.mqttCommandTopic = mqttCommandTopic;
+
+        auto commandConsumer = new LightCommandConsumer(this);
+        commandConsumer->init(_config.mqttCommandTopic.c_str());
+        _config.mqtt->subscribe(commandConsumer);
     }
 
     if (_config.hasDiscovery && _config.hasMQTTSupport) {
@@ -113,6 +118,32 @@ void EDCommon::Automation::Light::update()
     ) {
         _manual = false;
     }
+
+    bool cmd;
+    while (xQueueReceive(_commandQueue, &cmd, 0) == pdTRUE) {
+        _state.nightMode = cmd;
+        updateLight();
+        publishState();
+    }
+
+    if ((_lastPublishStateTime + 60000000) < esp_timer_get_time()) {
+        publishState();
+    }
+}
+
+bool EDCommon::Automation::Light::changeNightModeState(bool enable)
+{
+    return xQueueSend(_commandQueue, &enable, 0) == pdTRUE;
+}
+
+void EDCommon::Automation::Light::publishState()
+{
+    if (!_config.mqtt->publish(_config.mqttStateTopic.c_str(), _state.nightMode ? "true" : "false", false)) {
+        LOGE("changeNightModeState", "failed to publish night mode state");
+        return;
+    }
+
+    _lastPublishStateTime = esp_timer_get_time();
 }
 
 void EDCommon::Automation::Light::changeStateInternal(bool enabled, bool manual)
