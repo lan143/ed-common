@@ -12,7 +12,12 @@ namespace EDCommon
         class WBMR6C : public BinarySensor
         {
         public:
-            WBMR6C(uint8_t channel, EDHA::DeviceClass* deviceClass, bool reverse, EDWB::MR6C* mr6c) : _deviceClass(deviceClass), _reverse(reverse), _mr6c(mr6c) {}
+            WBMR6C(
+                uint8_t channel,
+                EDHA::DeviceClass* deviceClass,
+                bool reverse,
+                EDWB::MR6C* mr6c
+            ) : _channel(channel), _deviceClass(deviceClass), _reverse(reverse), _mr6c(mr6c) {}
 
         protected:
             bool preInit() override
