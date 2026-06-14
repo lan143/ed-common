@@ -11,8 +11,8 @@ bool EDCommon::Light::Light::init(std::initializer_list<LightOption> options)
     }
 
     if (_config.hasMQTTSupport) {
-        char mqttStateTopic[64] = {0};
-        char mqttCommandTopic[64] = {0};
+        char mqttStateTopic[256] = {0};
+        char mqttCommandTopic[256] = {0};
         std::string controllerName = _config.controllerName;
         std::string name = _config.name;
 
@@ -21,13 +21,18 @@ bool EDCommon::Light::Light::init(std::initializer_list<LightOption> options)
             return std::tolower(c);
         });
 
-        snprintf(mqttStateTopic, 64, "%s/%s/state", _config.topicPrefix.c_str(), name.c_str());
-        snprintf(mqttCommandTopic, 64, "%s/%s/set", _config.topicPrefix.c_str(), name.c_str());
+        snprintf(mqttStateTopic, 256, "%s/%s/state", _config.topicPrefix.c_str(), name.c_str());
+        snprintf(mqttCommandTopic, 256, "%s/%s/set", _config.topicPrefix.c_str(), name.c_str());
 
         _config.mqttStateTopic = mqttStateTopic;
         _config.mqttCommandTopic = mqttCommandTopic;
 
-        LOGD("RelayLight::init", "command topic: %s, state topic: %s", _config.mqttStateTopic.c_str(), _config.mqttCommandTopic.c_str());
+        LOGD(
+            "init",
+            "command topic: %s, state topic: %s",
+            _config.mqttCommandTopic.c_str(),
+            _config.mqttStateTopic.c_str()
+        );
 
         _stateProducer = new StateProducer(_config.mqtt);
         _stateProducer->init(_config.mqttStateTopic.c_str());

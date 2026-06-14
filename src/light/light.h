@@ -67,7 +67,7 @@ namespace EDCommon
 
             bool init(std::initializer_list<LightOption> options);
 
-            void update();
+            virtual void update();
 
             bool setState(bool enable);
             virtual std::pair<bool, bool> isEnabled() { return {false, false}; }

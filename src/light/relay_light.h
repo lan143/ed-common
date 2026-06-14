@@ -19,7 +19,7 @@ namespace EDCommon
 
             std::pair<bool, bool> isEnabled() override { return _relay->isEnabled(); }
 
-            void update()
+            void update() override
             {
                 _relay->update();
                 Light::update();
