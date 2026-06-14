@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <data_mgr.h>
 #include <FastLED.h>
 
 #include "./option.h"
@@ -49,7 +50,7 @@ namespace EDCommon
                 _commandQueue = xQueueCreate(10, sizeof(bool));
             }
 
-            bool init(std::initializer_list<Option> options);
+            bool init(std::string stateFileName, std::initializer_list<Option> options);
             void update();
 
             bool changeNightModeState(bool enable);
@@ -61,13 +62,14 @@ namespace EDCommon
 
         private:
             Config _config;
-            LightState _state;
             QueueHandle_t _commandQueue;
+            LightState _state;
             bool _manual = false;
             int64_t _lastUpdateTime = 0;
             int64_t _lastHumanDetectTime = 0;
             int64_t _lastManualControlTime = 0;
             int64_t _lastPublishStateTime = 0;
+            int64_t _lastStoreStateTime = 0;
             uint64_t _lightLowLevelCount = 0;
 
         private:
@@ -75,6 +77,7 @@ namespace EDCommon
             EDCommon::Light::Light* _backLight = nullptr;
             EDCommon::BinarySensor::BinarySensor* _humanDetector = nullptr;
             EDCommon::Sensor::Sensor* _lightLevel = nullptr;
+            EDConfig::DataMgr<LightState>* _stateMgr = nullptr;
         };
     }
 }

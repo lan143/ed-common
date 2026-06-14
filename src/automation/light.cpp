@@ -1,8 +1,18 @@
+#include <storage/littlefs_storage.hpp>
+
 #include "./mqtt/light_command_consumer.h"
 #include "./light.h"
 
-bool EDCommon::Automation::Light::init(std::initializer_list<Option> options)
+bool EDCommon::Automation::Light::init(std::string stateFileName, std::initializer_list<Option> options)
 {
+    _stateMgr = new EDConfig::DataMgr<LightState>(new EDConfig::StorageLittleFS<LightState>(stateFileName));
+    _stateMgr->setDefault([](LightState* state) {});
+
+    if (!_stateMgr->load()) {
+        LOGE("init", "failed to load state from file");
+        return false;
+    }
+
     for (auto& opt : options) {
         opt(_config);
     }
@@ -128,6 +138,22 @@ void EDCommon::Automation::Light::update()
 
     if ((_lastPublishStateTime + 60000000) < esp_timer_get_time()) {
         publishState();
+    }
+
+    if ((_lastStoreStateTime + 51000000) < esp_timer_get_time()) {
+        if (_state != *_stateMgr->getData()) {
+            _stateMgr->getData()->brightness = _state.brightness;
+            _stateMgr->getData()->color = _state.color;
+            _stateMgr->getData()->enabled = _state.enabled;
+            _stateMgr->getData()->nightMode = _state.nightMode;
+            _stateMgr->getData()->temperature = _state.temperature;
+
+            if (!_stateMgr->store()) {
+                LOGE("update", "failed to store state to file");
+            }
+        }
+
+        _lastStoreStateTime = esp_timer_get_time();
     }
 }
 
