@@ -21,6 +21,11 @@ namespace EDCommon
                 _config.reverse = _reverse;
                 _config.channel = _channel;
 
+                if (!_mr6c->setInputMode(_config.channel, EDWB::MR6C_INPUT_MODE_FREQUENCY)) {
+                    LOGE("init", "failed to set input mode for channel %d", _config.channel);
+                    return false;
+                }
+
                 return true;
             }
 

@@ -14,9 +14,14 @@ namespace EDCommon
         public:
             WBMR6C(EDWB::MR6C* mr6c) : Relay(), _mr6c(mr6c) { }
 
-            bool init(uint8_t channel, std::initializer_list<RelayOption> options)
+            bool init(uint8_t channel, int8_t switchChannel, std::initializer_list<RelayOption> options)
             {
                 _channel = channel;
+
+                if (switchChannel >= 0 && !_mr6c->setInputMode(switchChannel, EDWB::MR6C_INPUT_MODE_BUTTON_WITHOUT_LOCKING)) {
+                    LOGE("init", "failed to set input mode for channel %d", switchChannel);
+                    return false;
+                }
 
                 return Relay::init(options);
             }
