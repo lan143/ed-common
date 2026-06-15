@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <discovery.h>
+#include <GyverFilters.h>
 #include <mqtt.h>
 
 namespace EDCommon
@@ -22,6 +23,8 @@ namespace EDCommon
             EDHA::Device* device = nullptr;
             std::string unitOfMeasurement;
             std::string deviceClass;
+
+            GKalman* filter = nullptr;
         };
 
         using SensorOption = std::function<void(SensorConfig&)>;
@@ -43,6 +46,13 @@ namespace EDCommon
                 c.hasDiscovery = true;
                 c.discoveryMgr = discoveryMgr;
                 c.device = device;
+            };
+        }
+
+        inline SensorOption withKalmanFilter(float meaEstimate, float q)
+        {
+            return [meaEstimate, q](SensorConfig& c) {
+                c.filter = new GKalman(meaEstimate, q);
             };
         }
 

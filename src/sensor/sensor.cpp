@@ -74,6 +74,10 @@ void EDCommon::Sensor::Sensor::update()
     if ((_lastUpdateTime + _updateInterval) < esp_timer_get_time()) {
         auto currentValue = getValueInternal();
         if (currentValue.second) {
+            if (_config.filter != nullptr) {
+                currentValue.first = _config.filter->filtered(currentValue.first);
+            }
+
             if (_precision != 0.0f) {
                 currentValue.first = std::round(currentValue.first * _precision) / _precision;
             } else {
