@@ -86,9 +86,9 @@ void EDCommon::Sensor::Sensor::update()
 
             if (currentValue != _currentValue) {
                 _currentValue = currentValue;
-            }
 
-            publishState();
+                publishState();
+            }
         } else {
             LOGE("update", "failed to get value from sensor");
         }
