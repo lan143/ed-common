@@ -26,17 +26,21 @@ namespace EDCommon
             EDHA::DeviceClass* deviceClass = nullptr;
 
             EDCommon::Sensor::Sensor* lightLevel = nullptr;
+            float_t lowLightLevel = 0;
+
+            bool hasNightMode = false;
         };
 
         using Option = std::function<void(Config&)>;
 
-        inline Option withMQTT(EDMQTT::MQTT* mqtt, std::string topicPrefix, std::string controllerName)
+        inline Option withMQTT(EDMQTT::MQTT* mqtt, std::string topicPrefix, std::string controllerName, std::string name)
         {
-            return [mqtt, topicPrefix, controllerName](Config& c) {
+            return [mqtt, topicPrefix, controllerName, name](Config& c) {
                 c.hasMQTTSupport = true;
                 c.mqtt = mqtt;
                 c.topicPrefix = topicPrefix;
                 c.controllerName = controllerName;
+                c.name = name;
             };
         }
 
@@ -49,10 +53,18 @@ namespace EDCommon
             };
         }
 
-        inline Option withLightLevelSensor(EDCommon::Sensor::Sensor* lightLevel)
+        inline Option withLightLevelSensor(EDCommon::Sensor::Sensor* lightLevel, float_t lowLightLevel)
         {
-            return [lightLevel](Config& c) {
+            return [lightLevel, lowLightLevel](Config& c) {
                 c.lightLevel = lightLevel;
+                c.lowLightLevel = lowLightLevel;
+            };
+        }
+
+        inline Option withNightMode()
+        {
+            return [](Config& c) {
+                c.hasNightMode = true;
             };
         }
     }

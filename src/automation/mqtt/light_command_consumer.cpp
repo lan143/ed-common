@@ -7,12 +7,14 @@ void EDCommon::Automation::LightCommandConsumer::consume(std::string payload)
 {
     LOGD("mqtt_command_consumer", "handle light automation command");
 
-    bool enable;
+    bool enable = false;
     if (payload == "true") {
         enable = true;
     } else if (payload == "false") {
         enable = false;
     }
 
-    _light->changeNightModeState(enable);
+    if (!_light->changeNightModeState(enable)) {
+        LOGE("mqtt_command_consumer", "failed to change light night mode");
+    }
 }

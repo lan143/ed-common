@@ -17,8 +17,6 @@ bool EDCommon::Automation::Light::init(std::string stateFileName, std::initializ
     }
 
     if (_config.hasMQTTSupport) {
-        _config.name = "Light night mode";
-
         char mqttStateTopic[256] = {0};
         char mqttCommandTopic[256] = {0};
 
@@ -34,9 +32,11 @@ bool EDCommon::Automation::Light::init(std::string stateFileName, std::initializ
         _config.mqttStateTopic = mqttStateTopic;
         _config.mqttCommandTopic = mqttCommandTopic;
 
-        auto commandConsumer = new LightCommandConsumer(this);
-        commandConsumer->init(_config.mqttCommandTopic.c_str());
-        _config.mqtt->subscribe(commandConsumer);
+        if (_config.hasNightMode) {
+            auto commandConsumer = new LightCommandConsumer(this);
+            commandConsumer->init(_config.mqttCommandTopic.c_str());
+            _config.mqtt->subscribe(commandConsumer);
+        }
     }
 
     if (_config.hasDiscovery && _config.hasMQTTSupport) {
@@ -53,22 +53,25 @@ bool EDCommon::Automation::Light::init(std::string stateFileName, std::initializ
             return std::tolower(c);
         });
 
-        std::string uniqueID = EDUtils::formatString("%s_%s_%s", discoveryObjectID.c_str(), controllerName.c_str(), EDUtils::getChipID());
+        if (_config.hasNightMode) {
+            std::string uniqueID = EDUtils::formatString("%s_%s_%s", discoveryObjectID.c_str(), controllerName.c_str(), EDUtils::getChipID());
+            std::string name = EDUtils::formatString("%s night mode", _config.name.c_str());
 
-        _config.discoveryMgr->addSwitch(
-            _config.device,
-            _config.name,
-            discoveryObjectID,
-            uniqueID
-        )
-            ->setCommandTemplate("{{ value }}")
-            ->setCommandTopic(_config.mqttCommandTopic)
-            ->setStateTopic(_config.mqttStateTopic)
-            ->setValueTemplate("{{ value }}")
-            ->setPayloadOn("true")
-            ->setPayloadOff("false")
-            ->setStateOn("true")
-            ->setStateOff("false");
+            _config.discoveryMgr->addSwitch(
+                _config.device,
+                name,
+                discoveryObjectID,
+                uniqueID
+            )
+                ->setCommandTemplate("{{ value }}")
+                ->setCommandTopic(_config.mqttCommandTopic)
+                ->setStateTopic(_config.mqttStateTopic)
+                ->setValueTemplate("{{ value }}")
+                ->setPayloadOn("true")
+                ->setPayloadOff("false")
+                ->setStateOn("true")
+                ->setStateOff("false");
+        }
     }
 
     return true;
@@ -99,7 +102,7 @@ void EDCommon::Automation::Light::update()
 
         if (_config.lightLevel != nullptr) {
             auto lightLevel = _config.lightLevel->getValue();
-            if (lightLevel.second && lightLevel.first < 150.0f) {
+            if (lightLevel.second && lightLevel.first < _config.lowLightLevel) {
                 _lightLowLevelCount++;
             } else {
                 _lightLowLevelCount = 0;
@@ -109,7 +112,7 @@ void EDCommon::Automation::Light::update()
         // enable light if human detected, manual mode isnt active and light level is low
         if (!_manual) {
             if (isHumanDetected.second) {
-                if (isHumanDetected.first && (_config.lightLevel != nullptr && _lightLowLevelCount > 120)) {
+                if (isHumanDetected.first && (_config.lightLevel == nullptr || (_config.lightLevel != nullptr && _lightLowLevelCount > 120))) {
                     changeStateInternal(true, false);
                 } else if (!isHumanDetected.first) {
                     changeStateInternal(false, false);
@@ -191,7 +194,7 @@ void EDCommon::Automation::Light::changeStateInternal(bool enabled, bool manual)
 
 void EDCommon::Automation::Light::updateLight()
 {
-    if (_state.nightMode) {
+    if (_config.hasNightMode && _state.nightMode) {
         if (_backLight != nullptr) {
             if (_backLight->hasColorControl()) {
                 _backLight->setColor(0xff0000);
@@ -234,7 +237,7 @@ void EDCommon::Automation::Light::updateLight()
     }
 
     if (_backLight != nullptr) {
-        _mainLight->setState(!_state.nightMode ? _state.enabled : false);
+        _mainLight->setState(_config.hasNightMode && !_state.nightMode ? _state.enabled : false);
         _backLight->setState(_state.enabled);
     } else {
         _mainLight->setState(_state.enabled);

@@ -11,7 +11,7 @@ namespace EDCommon
         class WBLedCCT : public Light
         {
         public:
-            WBLedCCT(EDWB::LED* led) : _led(led) { }
+            WBLedCCT(EDWB::LED* led) : Light(), _led(led) { }
             bool init(uint8_t cctChannel, uint8_t switchChannel = 0, std::initializer_list<LightOption> options = {});
 
             std::pair<bool, bool> isEnabled() override;

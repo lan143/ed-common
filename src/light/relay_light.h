@@ -15,7 +15,7 @@ namespace EDCommon
         class Relay : public Light
         {
         public:
-            Relay(EDCommon::Relay::Relay* relay) : _relay(relay) { }
+            Relay(EDCommon::Relay::Relay* relay) : Light(), _relay(relay) { }
 
             std::pair<bool, bool> isEnabled() override { return _relay->isEnabled(); }
 
