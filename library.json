@@ -21,6 +21,9 @@
       },
       {
          "name": "PCF8574"
+      },
+      {
+         "name": "GyverFilters"
       }
     ]
   }

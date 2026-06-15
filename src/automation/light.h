@@ -42,10 +42,8 @@ namespace EDCommon
             Light(
                 EDCommon::Light::Light* mainLight,
                 EDCommon::Light::Light* backLight,
-                EDCommon::BinarySensor::BinarySensor* humanDetector,
-                EDCommon::Sensor::Sensor* lightLevel
-            ) : _mainLight(mainLight), _backLight(backLight), _humanDetector(humanDetector),
-                _lightLevel(lightLevel)
+                EDCommon::BinarySensor::BinarySensor* humanDetector
+            ) : _mainLight(mainLight), _backLight(backLight), _humanDetector(humanDetector)
             {
                 _commandQueue = xQueueCreate(10, sizeof(bool));
             }
@@ -76,7 +74,6 @@ namespace EDCommon
             EDCommon::Light::Light* _mainLight = nullptr;
             EDCommon::Light::Light* _backLight = nullptr;
             EDCommon::BinarySensor::BinarySensor* _humanDetector = nullptr;
-            EDCommon::Sensor::Sensor* _lightLevel = nullptr;
             EDConfig::DataMgr<LightState>* _stateMgr = nullptr;
         };
     }

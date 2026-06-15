@@ -97,17 +97,19 @@ void EDCommon::Automation::Light::update()
             _lastHumanDetectTime = esp_timer_get_time();
         }
 
-        auto lightLevel = _lightLevel->getValue();
-        if (lightLevel.second && lightLevel.first < 150.0f) {
-            _lightLowLevelCount++;
-        } else {
-            _lightLowLevelCount = 0;
+        if (_config.lightLevel != nullptr) {
+            auto lightLevel = _config.lightLevel->getValue();
+            if (lightLevel.second && lightLevel.first < 150.0f) {
+                _lightLowLevelCount++;
+            } else {
+                _lightLowLevelCount = 0;
+            }
         }
 
         // enable light if human detected, manual mode isnt active and light level is low
         if (!_manual) {
             if (isHumanDetected.second) {
-                if (isHumanDetected.first && _lightLowLevelCount > 120) {
+                if (isHumanDetected.first && (_config.lightLevel != nullptr && _lightLowLevelCount > 120)) {
                     changeStateInternal(true, false);
                 } else if (!isHumanDetected.first) {
                     changeStateInternal(false, false);

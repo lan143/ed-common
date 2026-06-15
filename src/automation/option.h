@@ -4,6 +4,8 @@
 #include <discovery.h>
 #include <mqtt.h>
 
+#include "../sensor/sensor.h"
+
 namespace EDCommon
 {
     namespace Automation
@@ -22,6 +24,8 @@ namespace EDCommon
             EDHA::DiscoveryMgr* discoveryMgr = nullptr;
             EDHA::Device* device = nullptr;
             EDHA::DeviceClass* deviceClass = nullptr;
+
+            EDCommon::Sensor::Sensor* lightLevel = nullptr;
         };
 
         using Option = std::function<void(Config&)>;
@@ -42,6 +46,13 @@ namespace EDCommon
                 c.hasDiscovery = true;
                 c.discoveryMgr = discoveryMgr;
                 c.device = device;
+            };
+        }
+
+        inline Option withLightLevelSensor(EDCommon::Sensor::Sensor* lightLevel)
+        {
+            return [lightLevel](Config& c) {
+                c.lightLevel = lightLevel;
             };
         }
     }
