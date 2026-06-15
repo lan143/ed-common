@@ -89,6 +89,14 @@ void EDCommon::BinarySensor::BinarySensor::update()
 
 void EDCommon::BinarySensor::BinarySensor::publishState()
 {
+    if (_config.mqtt == nullptr) {
+        return;
+    }
+
+    if (!_isActive.second) {
+        return;
+    }
+
     if (!_config.mqtt->publish(_config.mqttStateTopic.c_str(), _isActive.first ? "true" : "false", true)) {
         LOGE("update", "failed to publish update binary state");
     } else {

@@ -72,23 +72,47 @@ bool EDCommon::Sensor::Sensor::init(uint8_t precision, int64_t updateInterval, s
 void EDCommon::Sensor::Sensor::update()
 {
     if ((_lastUpdateTime + _updateInterval) < esp_timer_get_time()) {
-        _currentValue = getValueInternal();
-        if (_currentValue.second) {
+        auto currentValue = getValueInternal();
+        if (currentValue.second) {
             if (_precision != 0.0f) {
-                _currentValue.first = std::round(_currentValue.first * _precision) / _precision;
+                currentValue.first = std::round(currentValue.first * _precision) / _precision;
             } else {
-                _currentValue.first = (float_t)((int)_currentValue.first);
+                currentValue.first = (float_t)((int)currentValue.first);
             }
 
-            int digits = _precision != 0.0f ? (int)std::round(std::log10(_precision)) : 0;
-            auto payload = EDUtils::formatString("%.*f", digits, _currentValue.first);
-            if (!_config.mqtt->publish(_config.mqttStateTopic.c_str(), payload.c_str(), true)) {
-                LOGE("update", "failed to publish sensor update to mqtt");
+            if (currentValue != _currentValue) {
+                _currentValue = currentValue;
             }
+
+            publishState();
         } else {
             LOGE("update", "failed to get value from sensor");
         }
 
         _lastUpdateTime = esp_timer_get_time();
+    }
+
+    if ((_lastPublishStateTime + 60000000) < esp_timer_get_time()) {
+        publishState();
+    }
+}
+
+void EDCommon::Sensor::Sensor::publishState()
+{
+    if (_config.mqtt == nullptr) {
+        return;
+    }
+
+    if (!_currentValue.second) {
+        return;
+    }
+
+    int digits = _precision != 0.0f ? (int)std::round(std::log10(_precision)) : 0;
+    auto payload = EDUtils::formatString("%.*f", digits, _currentValue.first);
+
+    if (!_config.mqtt->publish(_config.mqttStateTopic.c_str(), payload.c_str(), true)) {
+        LOGE("update", "failed to publish sensor update to mqtt");
+    } else {
+        _lastPublishStateTime = esp_timer_get_time();
     }
 }

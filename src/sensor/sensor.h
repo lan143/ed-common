@@ -62,10 +62,14 @@ namespace EDCommon
             SensorConfig _config;
 
         private:
+            void publishState();
+
+        private:
             std::pair<float_t, bool> _currentValue;
             int64_t _lastUpdateTime = 0;
             float_t _precision = 0.0f;
             int64_t _updateInterval = 0;
+            int64_t _lastPublishStateTime = 0;
         };
     }
 }
