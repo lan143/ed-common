@@ -65,9 +65,13 @@ namespace EDCommon
             Config _config;
 
         private:
+            void publishState();
+
+        private:
             std::pair<bool, bool> _isActive;
             int64_t _lastUpdateTime = 0;
             int64_t _updateInterval = 0;
+            int64_t _lastSendStateTime = 0;
         };
     }
 }

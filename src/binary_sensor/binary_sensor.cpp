@@ -63,21 +63,35 @@ bool EDCommon::BinarySensor::BinarySensor::init(int64_t updateInterval, std::ini
 void EDCommon::BinarySensor::BinarySensor::update()
 {
     if ((_lastUpdateTime + _updateInterval) < esp_timer_get_time()) {
-        _isActive = isActiveInternal();
-        if (_isActive.second) {
+        auto isActive = isActiveInternal();
+
+        if (isActive.second) {
             if (_config.reverse) {
-                _isActive.first = !_isActive.first;
+                isActive.first = !isActive.first;
             }
 
-            if (!_config.mqtt->publish(_config.mqttStateTopic.c_str(), _isActive.first ? "true" : "false", true)) {
-                LOGE("update", "failed to publish update binary state");
-                _lastUpdateTime = esp_timer_get_time();
-                return;
+            if (isActive != _isActive) {
+                _isActive = isActive;
+
+                publishState();
             }
         } else {
             LOGE("update", "failed to get value from sensor");
         }
 
         _lastUpdateTime = esp_timer_get_time();
+    }
+
+    if ((_lastSendStateTime + 60000000) < esp_timer_get_time()) {
+        publishState();
+    }
+}
+
+void EDCommon::BinarySensor::BinarySensor::publishState()
+{
+    if (!_config.mqtt->publish(_config.mqttStateTopic.c_str(), _isActive.first ? "true" : "false", true)) {
+        LOGE("update", "failed to publish update binary state");
+    } else {
+        _lastSendStateTime = esp_timer_get_time();
     }
 }
