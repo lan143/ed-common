@@ -90,9 +90,9 @@ bool EDCommon::Light::Light::init(std::initializer_list<LightOption> options)
 
         if (hasColorControl()) {
             discovery->setRGBCommandTopic(_config.mqttCommandTopic)
-                ->setRGBCommandTemplate("{\"lightColor\": \"{{ value }}\" }")
+                ->setRGBCommandTemplate("{\"color\": \"{{ value }}\" }")
                 ->setRGBStateTopic(_config.mqttStateTopic)
-                ->setRGBValueTemplate("{{ value_json.lightColor }}");
+                ->setRGBValueTemplate("{{ value_json.color }}");
         }
     }
 

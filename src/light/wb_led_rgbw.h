@@ -28,7 +28,9 @@ namespace EDCommon
 
         private:
             uint8_t _switchChannel;
-            uint8_t _brightness;
+            uint8_t _brightness = 100;
+            CRGB _lastColor = CRGB(255, 255, 255);
+            bool applyOutput();
 
         private:
             EDWB::LED* _led = nullptr;

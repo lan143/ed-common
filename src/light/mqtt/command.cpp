@@ -3,6 +3,29 @@
 #include <ExtStrings.h>
 #include "command.h"
 
+static bool parseColorString(const char* value, std::pair<CRGB, bool>& out)
+{
+    std::vector<std::string> rgb = EDUtils::split(value, ",");
+
+    if (rgb.size() != 3) {
+        return false;
+    }
+
+    CRGB color = 0;
+
+    for (int i = 0; i < 3; i++) {
+        int c = 0;
+        if (EDUtils::str2int(&c, rgb[i].c_str(), 10) != EDUtils::STR2INT_SUCCESS) {
+            return false;
+        }
+
+        color = color.as_uint32_t() | (c << (16 - i * 8));
+    }
+
+    out = {color, true};
+    return true;
+}
+
 bool EDCommon::Light::MQTTCommand::unmarshalJSON(const char* data)
 {
     return EDUtils::parseJson(data, [this](JsonObject root) {
@@ -15,27 +38,9 @@ bool EDCommon::Light::MQTTCommand::unmarshalJSON(const char* data)
         }
 
         if (root.containsKey(F("color"))) {
-            const char* color = root[F("color")].as<const char*>();
-            std::vector<std::string> rgb = EDUtils::split(color, ",");
-
-            if (rgb.size() == 3) {
-                bool hasColor = true;
-                CRGB color = 0;
-
-                for (int i = 0; i < 3; i++) {
-                    int c = 0;
-                    if (EDUtils::str2int(&c, rgb[i].c_str(), 10) != EDUtils::STR2INT_SUCCESS) {
-                        hasColor = false;
-                        break;
-                    }
-
-                    color = color.as_uint32_t() | (c << (16 - i * 8));
-                }
-
-                if (hasColor) {
-                    _color = {color, true};
-                }
-            }
+            parseColorString(root[F("color")].as<const char*>(), _color);
+        } else if (root.containsKey(F("lightColor"))) {
+            parseColorString(root[F("lightColor")].as<const char*>(), _color);
         }
 
         return true;

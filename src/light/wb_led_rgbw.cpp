@@ -39,6 +39,39 @@ bool EDCommon::Light::WBLedRGBW::init(uint8_t switchChannel /* = 0 */, std::init
     return true;
 }
 
+bool EDCommon::Light::WBLedRGBW::applyOutput()
+{
+    CRGB scaled = _lastColor;
+    scaled.nscale8_video(map(constrain(_brightness, 0, 100), 0, 100, 0, 255));
+
+    CHSV hsv = rgb2hsv_approximate(scaled);
+    float S = hsv.s / 255.0f;
+    float V = hsv.v / 255.0f;
+    uint8_t whiteLevel = (uint8_t)(V * (1.0f - S) * 100.0f + 0.5f);
+
+    if (!_led->setChannelBrightness(4, whiteLevel)) {
+        return false;
+    }
+
+    auto powered = isEnabled();
+
+    if (!powered.second) {
+        return false;
+    }
+
+    if (!_led->enableChannel(4, powered.first && whiteLevel > 0)) {
+        return false;
+    }
+
+    float vColor = V * S;
+    CHSV hsvColor(hsv.h, 255, (uint8_t)(vColor * 255.0f + 0.5f));
+
+    CRGB rgbColor;
+    hsv2rgb_rainbow(hsvColor, rgbColor);
+
+    return _led->setRGBColor(rgbColor.as_uint32_t());
+}
+
 bool EDCommon::Light::WBLedRGBW::setStateInternal(bool enable)
 {
     auto result = isEnabled();
@@ -47,11 +80,23 @@ bool EDCommon::Light::WBLedRGBW::setStateInternal(bool enable)
         return false;
     }
 
-    if (result.first != enable) {
-        return _led->enableRGB(enable);
+    if (enable) {
+        if (result.first) {
+            return true;
+        }
+
+        if (!_led->enableRGB(true)) {
+            return false;
+        }
+
+        return applyOutput();
     }
 
-    return true;
+    if (!_led->enableRGB(false)) {
+        return false;
+    }
+
+    return _led->enableChannel(4, false);
 }
 
 std::pair<bool, bool> EDCommon::Light::WBLedRGBW::isEnabled()
@@ -65,50 +110,13 @@ std::pair<bool, bool> EDCommon::Light::WBLedRGBW::isEnabled()
 
 bool EDCommon::Light::WBLedRGBW::setBrightnessInternal(uint8_t brightness)
 {
-    auto result = getBrightness();
-    if (!result.second) {
-        return false;
-    }
-
-    auto colorResult = _led->getRGBColor();
-    if (!colorResult._success) {
-        return false;
-    }
-
-    CRGB newColor = colorResult._value;
-    uint8_t mapBrightness = map(constrain(brightness, 0, 100), 0, 100, 0, 255);
-    newColor.nscale8_video(mapBrightness);
-    CHSV hsv = rgb2hsv_approximate(newColor);
-
-    float S = hsv.s / 255.0f;
-    float V = hsv.v / 255.0f;
-    float Wf = V * (1.0f - S);
-
-    if (!_led->setChannelBrightness(4, (uint8_t)(Wf * 100.0f + 0.5f))) {
-        return false;
-    }
-
-    if (!_led->enableChannel(4, true)) {
-        return false;
-    }
-
-    float vColor = V * S;
-    CHSV hsvColor(hsv.h, 255, (uint8_t)(vColor * 255.0f + 0.5f));
-
-    CRGB rgbColor;
-    hsv2rgb_rainbow(hsvColor, rgbColor);
-
-    if (!_led->setRGBColor(rgbColor.as_uint32_t())) {
-        return false;
-    }
+    _brightness = constrain(brightness, 0, 100);
 
     if (!_led->enableRGB(true)) {
         return false;
     }
 
-    _brightness = brightness;
-
-    return true;
+    return applyOutput();
 }
 
 std::pair<uint8_t, bool> EDCommon::Light::WBLedRGBW::getBrightness()
@@ -118,15 +126,11 @@ std::pair<uint8_t, bool> EDCommon::Light::WBLedRGBW::getBrightness()
 
 bool EDCommon::Light::WBLedRGBW::setColorInternal(CRGB color)
 {
-    return _led->setRGBColor(color.as_uint32_t());
+    _lastColor = color;
+    return applyOutput();
 }
 
 std::pair<CRGB, bool> EDCommon::Light::WBLedRGBW::getColor()
 {
-    auto result = _led->getRGBColor();
-    if (!result._success) {
-        return {0, false};
-    }
-
-    return {result._value, true};
+    return {_lastColor, true};
 }
