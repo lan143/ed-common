@@ -84,7 +84,7 @@ bool EDCommon::Light::WBLedRGBW::setBrightnessInternal(uint8_t brightness)
     float V = hsv.v / 255.0f;
     float Wf = V * (1.0f - S);
 
-    if (_led->setChannelBrightness(4, (uint8_t)(Wf * 100.0f + 0.5f))) {
+    if (!_led->setChannelBrightness(4, (uint8_t)(Wf * 100.0f + 0.5f))) {
         return false;
     }
 
@@ -107,6 +107,8 @@ bool EDCommon::Light::WBLedRGBW::setBrightnessInternal(uint8_t brightness)
     }
 
     _brightness = brightness;
+
+    return true;
 }
 
 std::pair<uint8_t, bool> EDCommon::Light::WBLedRGBW::getBrightness()
