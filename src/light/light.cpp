@@ -72,17 +72,27 @@ bool EDCommon::Light::Light::init(std::initializer_list<LightOption> options)
 
         if (hasBrightnessControl()) {
             discovery->setBrightnessCommandTopic(_config.mqttCommandTopic)
-            ->setBrightnessCommandTemplate("{\"brightness\": {{ value }} }")
-            ->setBrightnessStateTopic(_config.mqttStateTopic)
-            ->setBrightnessValueTemplate("{{ value_json.brightness }}")
-            ->setBrightnessScale(100)
-            ->setColorTempKelvin(true)
-            ->setColorTempCommandTemplate("{\"tempColor\": {{ value }} }")
-            ->setColorTempCommandTopic(_config.mqttCommandTopic)
-            ->setColorTempStateTopic(_config.mqttStateTopic)
-            ->setColorTempValueTemplate("{{ value_json.tempColor }}")
-            ->setMinKelvin(2700) // @todo: move to options
-            ->setMaxKelvin(6000); // @todo: move to options
+                ->setBrightnessCommandTemplate("{\"brightness\": {{ value }} }")
+                ->setBrightnessStateTopic(_config.mqttStateTopic)
+                ->setBrightnessValueTemplate("{{ value_json.brightness }}")
+                ->setBrightnessScale(100);
+        }
+
+        if (hasTemperatureControl()) {
+            discovery->setColorTempKelvin(true)
+                ->setColorTempCommandTemplate("{\"tempColor\": {{ value }} }")
+                ->setColorTempCommandTopic(_config.mqttCommandTopic)
+                ->setColorTempStateTopic(_config.mqttStateTopic)
+                ->setColorTempValueTemplate("{{ value_json.tempColor }}")
+                ->setMinKelvin(2700) // @todo: move to options
+                ->setMaxKelvin(6000); // @todo: move to options
+        }
+
+        if (hasColorControl()) {
+            discovery->setRGBCommandTopic(_config.mqttCommandTopic)
+                ->setRGBCommandTemplate("{\"lightColor\": \"{{ value }}\" }")
+                ->setRGBStateTopic(_config.mqttStateTopic)
+                ->setRGBValueTemplate("{{ value_json.lightColor }}");
         }
     }
 

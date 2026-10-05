@@ -76,8 +76,8 @@ bool EDCommon::Light::WBLedRGBW::setBrightnessInternal(uint8_t brightness)
     }
 
     CRGB newColor = colorResult._value;
-    uint8_t brightness = map(constrain(brightness, 0, 100), 0, 100, 0, 255);
-    newColor.nscale8_video(brightness);
+    uint8_t mapBrightness = map(constrain(brightness, 0, 100), 0, 100, 0, 255);
+    newColor.nscale8_video(mapBrightness);
     CHSV hsv = rgb2hsv_approximate(newColor);
 
     float S = hsv.s / 255.0f;
