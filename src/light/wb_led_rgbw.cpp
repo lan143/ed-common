@@ -2,6 +2,8 @@
 
 #include "wb_led_rgbw.h"
 
+static constexpr float WHITE_SATURATION_CUTOFF = 0.6f; // whites fully off when saturation >= this
+
 bool EDCommon::Light::WBLedRGBW::init(uint8_t switchChannel /* = 0 */, std::initializer_list<LightOption> options /* = {} */)
 {
     Light::init(options);
@@ -47,7 +49,12 @@ bool EDCommon::Light::WBLedRGBW::applyOutput()
     CHSV hsv = rgb2hsv_approximate(scaled);
     float S = hsv.s / 255.0f;
     float V = hsv.v / 255.0f;
-    uint8_t whiteLevel = (uint8_t)(V * (1.0f - S) * 100.0f + 0.5f);
+    float whiteScale = 1.0f - S / WHITE_SATURATION_CUTOFF;
+    if (whiteScale < 0.0f) {
+        whiteScale = 0.0f;
+    }
+
+    uint8_t whiteLevel = (uint8_t)(V * whiteScale * 100.0f + 0.5f);
 
     if (!_led->setChannelBrightness(4, whiteLevel)) {
         return false;
