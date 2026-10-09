@@ -102,20 +102,26 @@ bool EDCommon::Light::WBLedRGBW::applyOutput()
         CRGB scaled = _lastColor;
         scaled.nscale8_video(map(constrain(_brightness, 0, 100), 0, 100, 0, 255));
 
-        CHSV hsv = rgb2hsv_approximate(scaled);
-        float S = hsv.s / 255.0f;
-        float V = hsv.v / 255.0f;
-        float whiteScale = 1.0f - S / WHITE_SATURATION_CUTOFF;
+        uint8_t neutral = scaled.r;
+        uint8_t peak = scaled.r;
+        if (scaled.g < neutral) { neutral = scaled.g; }
+        if (scaled.b < neutral) { neutral = scaled.b; }
+        if (scaled.g > peak) { peak = scaled.g; }
+        if (scaled.b > peak) { peak = scaled.b; }
+
+        float saturation = (neutral == peak) ? 0.0f : 1.0f - (float)neutral / (float)peak;
+        float whiteScale = 1.0f - saturation / WHITE_SATURATION_CUTOFF;
         if (whiteScale < 0.0f) {
             whiteScale = 0.0f;
         }
 
-        whiteLevel = (uint8_t)(V * whiteScale * 100.0f + 0.5f);
+        uint8_t whitePart = (uint8_t)((float)neutral * whiteScale + 0.5f);
+        whiteLevel = (uint8_t)(((uint16_t)whitePart * 100) / 255);
 
-        float vColor = V * S;
-        CHSV hsvColor(hsv.h, 255, (uint8_t)(vColor * 255.0f + 0.5f));
-
-        hsv2rgb_rainbow(hsvColor, rgbOut);
+        rgbOut = CRGB(
+            scaled.r > whitePart ? (uint8_t)(scaled.r - whitePart) : 0,
+            scaled.g > whitePart ? (uint8_t)(scaled.g - whitePart) : 0,
+            scaled.b > whitePart ? (uint8_t)(scaled.b - whitePart) : 0);
     }
 
     if (!_led->setChannelBrightness(4, whiteLevel)) {
