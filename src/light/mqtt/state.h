@@ -19,8 +19,9 @@ namespace EDCommon
 
             void setEnabled(bool enabled) { _enabled = {enabled, true}; }
             void setBrightness(uint8_t brightness) { _brightness = {brightness, true}; }
-            void setTemperature(uint16_t tempColor) { _tempColor = {tempColor, true}; }
-            void setColor(CRGB color) { _color = {color, true}; }
+            // Mutually exclusive: HA must not receive both color and tempColor in one state payload.
+            void setTemperature(uint16_t tempColor) { _tempColor = {tempColor, true}; _color = {CRGB(), false}; }
+            void setColor(CRGB color) { _color = {color, true}; _tempColor = {0, false}; }
 
         private:
             std::pair<bool, bool> _enabled;
