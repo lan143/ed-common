@@ -37,6 +37,14 @@ namespace EDCommon
                 c.topicPrefix = topicPrefix;
                 c.controllerName = controllerName;
                 c.name = name;
+
+                std::string sanitized = name;
+                std::replace(sanitized.begin(), sanitized.end(), ' ', '_');
+                std::transform(sanitized.begin(), sanitized.end(), sanitized.begin(), [](unsigned char ch) {
+                    return std::tolower(ch);
+                });
+
+                c.mqttStateTopic = topicPrefix + "/" + sanitized + "/state";
             };
         }
 

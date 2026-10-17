@@ -18,17 +18,19 @@ bool EDCommon::Sensor::Sensor::init(uint8_t precision, int64_t updateInterval, s
     }
 
     if (_config.hasMQTTSupport) {
-        char mqttStateTopic[64] = {0};
-        std::string name = _config.name;
+        if (_config.mqttStateTopic.empty()) {
+            char mqttStateTopic[64] = {0};
+            std::string name = _config.name;
 
-        std::replace(name.begin(), name.end(), ' ', '_');
-        std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) {
-            return std::tolower(c);
-        });
+            std::replace(name.begin(), name.end(), ' ', '_');
+            std::transform(name.begin(), name.end(), name.begin(), [](unsigned char c) {
+                return std::tolower(c);
+            });
 
-        snprintf(mqttStateTopic, 64, "%s/%s/state", _config.topicPrefix.c_str(), name.c_str());
+            snprintf(mqttStateTopic, 64, "%s/%s/state", _config.topicPrefix.c_str(), name.c_str());
 
-        _config.mqttStateTopic = mqttStateTopic;
+            _config.mqttStateTopic = mqttStateTopic;
+        }
 
         LOGD("WaterLevel::init", "state topic: %s", _config.mqttStateTopic.c_str());
     }
