@@ -57,7 +57,17 @@ bool EDCommon::BinarySensor::BinarySensor::init(int64_t updateInterval, std::ini
             ->setDeviceClass(_config.deviceClass);
     }
 
+    if (!postInit()) {
+        LOGE("init", "failed to run post init");
+        return false;
+    }
+
     return true;
+}
+
+void EDCommon::BinarySensor::BinarySensor::setValue(bool enabled)
+{
+    _isActive = {enabled, true};
 }
 
 void EDCommon::BinarySensor::BinarySensor::update()
@@ -76,7 +86,9 @@ void EDCommon::BinarySensor::BinarySensor::update()
                 publishState();
             }
         } else {
-            LOGE("update", "failed to get value from sensor");
+            if (!_isActive.second) {
+                LOGE("update", "failed to get value from sensor");
+            }
         }
 
         _lastUpdateTime = esp_timer_get_time();

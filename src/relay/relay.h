@@ -28,6 +28,8 @@ namespace EDCommon
 
             bool hasTimeout = false;
             int64_t timeout = 0;
+
+            std::function<void(bool)> stateChangeListener = nullptr;
         };
 
         using RelayOption = std::function<void(RelayConfig&)>;
@@ -60,6 +62,13 @@ namespace EDCommon
             };
         }
 
+        inline RelayOption withStateChangeListener(std::function<void(bool)> listener)
+        {
+            return [listener](RelayConfig& c) {
+                c.stateChangeListener = listener;
+            };
+        }
+
         class Relay
         {
         public:
@@ -76,8 +85,9 @@ namespace EDCommon
             void update();
 
         protected:
-            virtual bool setStateInternal(bool enable) = 0;
-            virtual std::pair<bool, bool> isEnabledInternal() = 0;
+            // Defaults keep logical state in memory so Relay is usable without hardware; listener fires for any accepted change (incl. setState() once drained).
+            virtual bool setStateInternal(bool enable) { _softwareEnabled = enable; return true; }
+            virtual std::pair<bool, bool> isEnabledInternal() { return {_softwareEnabled, true}; }
 
         private:
             bool publishState();
@@ -89,6 +99,7 @@ namespace EDCommon
             RelayConfig _config;
             MQTTState _mqttState;
             QueueHandle_t _commandQueue;
+            bool _softwareEnabled = false;
             int64_t _lastPublishStateTime = 0;
             int64_t _lastEnabledTime = 0;
             int64_t _lastTimeoutCheckTime = 0;

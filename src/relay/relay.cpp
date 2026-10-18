@@ -95,6 +95,10 @@ void EDCommon::Relay::Relay::update()
             _mqttState.setState(cmd);
             publishState();
 
+            if (_config.stateChangeListener != nullptr) {
+                _config.stateChangeListener(cmd);
+            }
+
             if (cmd) {
                 _lastEnabledTime = esp_timer_get_time();
             }

@@ -54,6 +54,7 @@ namespace EDCommon
         public:
             bool init(int64_t updateInterval, std::initializer_list<Option> options);
             void update();
+            void setValue(bool enabled);
             std::pair<bool, bool> isActive() { return _isActive; }
 
         protected:

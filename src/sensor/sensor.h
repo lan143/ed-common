@@ -25,6 +25,8 @@ namespace EDCommon
             std::string deviceClass;
 
             GKalman* filter = nullptr;
+
+            bool binaryMode = false;
         };
 
         using SensorOption = std::function<void(SensorConfig&)>;
@@ -57,6 +59,13 @@ namespace EDCommon
             };
         }
 
+        inline SensorOption withBinaryMode()
+        {
+            return [](SensorConfig& c) {
+                c.binaryMode = true;
+            };
+        }
+
         inline SensorOption withKalmanFilter(float meaEstimate, float q)
         {
             return [meaEstimate, q](SensorConfig& c) {
@@ -69,6 +78,7 @@ namespace EDCommon
         public:
             bool init(uint8_t precision, int64_t updateInterval, std::initializer_list<SensorOption> options);
             void update();
+            void setValue(float_t value);
             std::pair<float_t, bool> getValue() { return _currentValue; }
 
         protected:
@@ -84,6 +94,7 @@ namespace EDCommon
 
         private:
             std::pair<float_t, bool> _currentValue;
+            std::pair<float_t, bool> _lastPublishedValue = {0.0f, false};
             int64_t _lastUpdateTime = 0;
             float_t _precision = 0.0f;
             int64_t _updateInterval = 0;
