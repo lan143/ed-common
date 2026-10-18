@@ -51,24 +51,16 @@ bool EDCommon::Sensor::Sensor::init(uint8_t precision, int64_t updateInterval, s
 
         std::string uniqueID = EDUtils::formatString("%s_%s_%s", discoveryObjectID.c_str(), controllerName.c_str(), EDUtils::getChipID());
 
-        auto sensor = _config.discoveryMgr->addSensor(
+        _config.discoveryMgr->addSensor(
             _config.device,
             _config.name,
             discoveryObjectID,
             uniqueID
-        );
-
-        if (_config.binaryMode) {
-            sensor
-                ->setStateTopic(_config.mqttStateTopic)
-                ->setValueTemplate("{{ value | bool }}");
-        } else {
-            sensor
-                ->setStateTopic(_config.mqttStateTopic)
-                ->setValueTemplate("{{ value }}")
-                ->setUnitOfMeasurement(_config.unitOfMeasurement)
-                ->setDeviceClass(_config.deviceClass);
-        }
+        )
+            ->setStateTopic(_config.mqttStateTopic)
+            ->setValueTemplate("{{ value }}")
+            ->setUnitOfMeasurement(_config.unitOfMeasurement)
+            ->setDeviceClass(_config.deviceClass);
     }
 
     if (!postInit()) {
@@ -77,15 +69,6 @@ bool EDCommon::Sensor::Sensor::init(uint8_t precision, int64_t updateInterval, s
     }
 
     return true;
-}
-
-void EDCommon::Sensor::Sensor::setValue(float_t value)
-{
-    if (_config.binaryMode) {
-        _currentValue = {value >= 0.5f ? 1.0f : 0.0f, true};
-    } else {
-        _currentValue = {value, true};
-    }
 }
 
 void EDCommon::Sensor::Sensor::update()
@@ -106,11 +89,6 @@ void EDCommon::Sensor::Sensor::update()
             if (currentValue != _currentValue) {
                 _currentValue = currentValue;
 
-                publishState();
-            }
-        } else if (_config.binaryMode) {
-            // Driverless/binary software-provided value: keep last _currentValue and still detect changes.
-            if (_currentValue.second && _currentValue != _lastPublishedValue) {
                 publishState();
             }
         } else {
@@ -141,7 +119,6 @@ void EDCommon::Sensor::Sensor::publishState()
     if (!_config.mqtt->publish(_config.mqttStateTopic.c_str(), payload.c_str(), true)) {
         LOGE("update", "failed to publish sensor update to mqtt");
     } else {
-        _lastPublishedValue = _currentValue;
         _lastPublishStateTime = esp_timer_get_time();
     }
 }
