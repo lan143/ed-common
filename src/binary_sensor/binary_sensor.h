@@ -25,6 +25,7 @@ namespace EDCommon
             EDHA::DeviceClass* deviceClass = nullptr;
 
             bool reverse = false;
+            bool hasSoftwareSource = false;
         };
 
         using Option = std::function<void(Config&)>;
@@ -70,6 +71,7 @@ namespace EDCommon
 
         private:
             std::pair<bool, bool> _isActive;
+            std::pair<bool, bool> _lastPublishedState = {false, false};
             int64_t _lastUpdateTime = 0;
             int64_t _updateInterval = 0;
             int64_t _lastSendStateTime = 0;

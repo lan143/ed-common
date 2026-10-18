@@ -68,6 +68,7 @@ bool EDCommon::BinarySensor::BinarySensor::init(int64_t updateInterval, std::ini
 void EDCommon::BinarySensor::BinarySensor::setValue(bool enabled)
 {
     _isActive = {enabled, true};
+    _config.hasSoftwareSource = true;
 }
 
 void EDCommon::BinarySensor::BinarySensor::update()
@@ -85,10 +86,13 @@ void EDCommon::BinarySensor::BinarySensor::update()
 
                 publishState();
             }
-        } else {
-            if (!_isActive.second) {
-                LOGE("update", "failed to get value from sensor");
+        } else if (_config.hasSoftwareSource) {
+            // Software-provided value (setValue): keep _isActive and detect changes.
+            if (_isActive.second && _isActive != _lastPublishedState) {
+                publishState();
             }
+        } else {
+            LOGE("update", "failed to get value from sensor");
         }
 
         _lastUpdateTime = esp_timer_get_time();
@@ -113,5 +117,6 @@ void EDCommon::BinarySensor::BinarySensor::publishState()
         LOGE("update", "failed to publish update binary state");
     } else {
         _lastSendStateTime = esp_timer_get_time();
+        _lastPublishedState = _isActive;
     }
 }
