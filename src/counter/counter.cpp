@@ -101,7 +101,7 @@ void EDCommon::Counter::Counter::update()
         _lastFlowOfWaterActive = false;
     }
 
-    if (_config.hasMQTTSupport && _dirty) {
+    if (_config.hasMQTTSupport && _dirty && _config.mqtt != nullptr && _config.mqtt->isConnected()) {
         publishState();
     }
 }
