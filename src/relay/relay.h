@@ -29,6 +29,9 @@ namespace EDCommon
             bool hasTimeout = false;
             int64_t timeout = 0;
 
+            // Entity ON means valve OPEN (relay disabled); only the discovery mapping changes.
+            bool openSemantics = false;
+
             std::function<void(bool)> stateChangeListener = nullptr;
         };
 
@@ -59,6 +62,13 @@ namespace EDCommon
             return [timeout](RelayConfig& c) {
                 c.hasTimeout = true;
                 c.timeout = timeout;
+            };
+        }
+
+        inline RelayOption withOpenSemantics()
+        {
+            return [](RelayConfig& c) {
+                c.openSemantics = true;
             };
         }
 

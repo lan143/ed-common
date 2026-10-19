@@ -52,6 +52,12 @@ bool EDCommon::Relay::Relay::init(std::initializer_list<EDCommon::Relay::RelayOp
 
         std::string uniqueID = EDUtils::formatString("%s_%s_%s", discoveryObjectID.c_str(), controllerName.c_str(), EDUtils::getChipID());
 
+        // The state payload is always relay-enabled semantics; open semantics only flips HA's interpretation.
+        const char* payloadOn = _config.openSemantics ? "off" : "on";
+        const char* payloadOff = _config.openSemantics ? "on" : "off";
+        const char* stateOn = _config.openSemantics ? "off" : "on";
+        const char* stateOff = _config.openSemantics ? "on" : "off";
+
         _config.discoveryMgr->addSwitch(
             _config.device,
             _config.name,
@@ -61,10 +67,10 @@ bool EDCommon::Relay::Relay::init(std::initializer_list<EDCommon::Relay::RelayOp
             ->setCommandTopic(_config.mqttCommandTopic)
             ->setStateTopic(_config.mqttStateTopic)
             ->setValueTemplate("{{ value_json.enabled }}")
-            ->setPayloadOn("on")
-            ->setPayloadOff("off")
-            ->setStateOn("on")
-            ->setStateOff("off");
+            ->setPayloadOn(payloadOn)
+            ->setPayloadOff(payloadOff)
+            ->setStateOn(stateOn)
+            ->setStateOff(stateOff);
     }
 
     auto enabledResult = isEnabled();
