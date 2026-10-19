@@ -11,6 +11,10 @@ void EDCommon::Relay::MQTTCommandConsumer::consume(std::string payload)
         enable = true;
     } else if (payload == "off") {
         enable = false;
+    } else {
+        LOGW("mqtt_command_consumer", "unexpected relay command payload: %s", payload.c_str());
+
+        return;
     }
 
     if (!_relay->setState(enable)) {
