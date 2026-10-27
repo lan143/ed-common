@@ -1,10 +1,10 @@
 #pragma once
 
 #include <Arduino.h>
-#include <FastLED.h>
 #include <discovery.h>
 #include <mqtt.h>
 
+#include "../color/color.h"
 #include "light/mqtt/state_producer.h"
 #include "light/mqtt/state.h"
 

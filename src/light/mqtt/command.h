@@ -1,7 +1,8 @@
 #pragma once
 
 #include <Arduino.h>
-#include <FastLED.h>
+
+#include "../../color/color.h"
 
 namespace EDCommon
 {

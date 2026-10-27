@@ -2,8 +2,8 @@
 
 #include <Arduino.h>
 #include <data_mgr.h>
-#include <FastLED.h>
 
+#include "../color/color.h"
 #include "./option.h"
 #include "../binary_sensor/binary_sensor.h"
 #include "../light/light.h"
