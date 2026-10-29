@@ -16,6 +16,9 @@ bool EDCommon::Automation::Light::init(std::string stateFileName, std::initializ
         opt(_config);
     }
 
+    // initialize timing baselines to boot time so no deadline is ever measured from 0
+    _lastHumanDetectTime = _lastManualControlTime = _lastCommandTime = esp_timer_get_time();
+
     if (_config.hasMQTTSupport) {
         char mqttStateTopic[256] = {0};
         char mqttCommandTopic[256] = {0};
@@ -83,8 +86,18 @@ void EDCommon::Automation::Light::update()
         auto isEnabled = _mainLight->isEnabled();
         auto brightness = _mainLight->getBrightness();
 
-        if (isEnabled.second && _state.enabled != isEnabled.first) {
+        auto now = esp_timer_get_time();
+
+        if (
+            !isEnabled.second
+            || (_backLight != nullptr && _config.hasNightMode && _state.nightMode) // main light is intentionally off in night mode
+            || (now - _lastCommandTime) < 3000000 // ignore readback shortly after issuing our own command
+            || _state.enabled == isEnabled.first
+        ) {
+            _mismatchCount = 0;
+        } else if (++_mismatchCount >= 6) { // adopt only sustained mismatches (~3s)
             changeStateInternal(isEnabled.first, true);
+            _mismatchCount = 0;
         }
 
         if (
@@ -190,6 +203,8 @@ void EDCommon::Automation::Light::changeStateInternal(bool enabled, bool manual)
     }
 
     updateLight();
+
+    _lastCommandTime = esp_timer_get_time();
 }
 
 void EDCommon::Automation::Light::updateLight()

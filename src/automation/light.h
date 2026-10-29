@@ -68,6 +68,8 @@ namespace EDCommon
             int64_t _lastManualControlTime = 0;
             int64_t _lastPublishStateTime = 0;
             int64_t _lastStoreStateTime = 0;
+            int64_t _lastCommandTime = 0;
+            uint8_t _mismatchCount = 0;
             uint64_t _lightLowLevelCount = 0;
 
         private:
