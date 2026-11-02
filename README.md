@@ -7,7 +7,7 @@ Some objects for home automations — an Arduino/ESP32 library with Home Assista
 - **Relay** — MQTT-controlled relays with Home Assistant discovery, optional timeout, open/closed semantics, and state-change listeners. Backends for Wiren Board MR6C and PCF8574.
 - **Light** — CCT and RGBW light control for Wiren Board LED devices, plus a wrapper around `Relay`. Supports on/off, brightness, color temperature, and RGB color over MQTT.
 - **Sensor** — MQTT/Home Assistant sensors with optional Kalman filtering. Wrappers for Wiren Board MS/MSW measurements, a QDY30A water-level sensor, and WB MAI6 pressure.
-- **Binary sensor** — Wiren Board MR6C digital inputs and MTD262MB occupancy detection.
+- **Binary sensor** — Wiren Board MR6C digital inputs, MTD262MB occupancy detection, and WB-MSW motion detection.
 - **Counter** — pulse water counters with cost scaling and optional persistence.
 - **Automation** — presence/light-level/night-mode smart light automation with LittleFS-persisted state.
 - **Color** — header-only, FastLED-compatible `CRGB`/`CHSV` port that is bit-for-bit compatible with FastLED 3.10.3 on non-AVR builds.
@@ -22,7 +22,7 @@ ESP32 only (`architectures=esp32`).
 | --- | --- |
 | Wiren Board MR6C | `Relay::WBMR6C`, `BinarySensor::WBMR6C` |
 | Wiren Board MS | `Sensor::WBMS*` |
-| Wiren Board MSW | `Sensor::WBMSW*` |
+| Wiren Board MSW | `Sensor::WBMSW*`, `BinarySensor::WBMSW` |
 | Wiren Board MAI6 | `Sensor::WBMAI6Pressure` |
 | Wiren Board LED | `Light::WBLedCCT`, `Light::WBLedRGBW` |
 | PCF8574 I/O expander | `Relay::PCF8574P`, `Counter::PCF8574P` |
@@ -138,11 +138,11 @@ Available wrappers:
 
 ### Binary sensor
 
-Headers: `<binary_sensor/binary_sensor.h>`, `<binary_sensor/wb_mr6c.h>`, `<binary_sensor/mtd262mb.h>`
+Headers: `<binary_sensor/binary_sensor.h>`, `<binary_sensor/wb_mr6c.h>`, `<binary_sensor/mtd262mb.h>`, `<binary_sensor/wb_msw.h>`
 
 `BinarySensor::init(updateInterval, options)`, `update()`, `setValue()`, `isActive()`. Options: `withMQTT`, `withDiscovery`.
 
-`WBMR6C` reads an MR6C input channel; `MTD262MB` exposes occupancy from the MTD262MB sensor.
+`WBMR6C` reads an MR6C input channel; `MTD262MB` exposes occupancy from the MTD262MB sensor; `WBMSW` exposes motion detection from the WB-MSW sensor.
 
 ### Counter
 
