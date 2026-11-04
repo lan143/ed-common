@@ -1,3 +1,5 @@
+#if __has_include(<device/wb_led.h>)
+
 #include <math.h>
 
 #include <log/log.h>
@@ -221,3 +223,5 @@ std::pair<uint16_t, bool> EDCommon::Light::WBLedRGBW::getTemperature()
 {
     return {_temperature, _temperature > 0};
 }
+
+#endif

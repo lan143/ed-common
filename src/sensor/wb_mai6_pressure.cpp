@@ -1,3 +1,5 @@
+#if __has_include(<device/wb_mai6.h>)
+
 #include <log/log.h>
 
 #include "wb_mai6_pressure.h"
@@ -66,3 +68,5 @@ std::pair<float_t, bool> EDCommon::Sensor::WBMAI6Pressure::getValueInternal()
 
     return std::make_pair(physicalValue, true);
 }
+
+#endif

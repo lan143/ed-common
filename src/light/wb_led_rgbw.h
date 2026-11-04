@@ -1,5 +1,7 @@
 #pragma once
 
+#if __has_include(<device/wb_led.h>)
+
 #include <device/wb_led.h>
 
 #include "light.h"
@@ -45,3 +47,5 @@ namespace EDCommon
         };
     }
 }
+
+#endif

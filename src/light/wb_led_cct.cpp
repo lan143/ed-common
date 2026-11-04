@@ -1,3 +1,5 @@
+#if __has_include(<device/wb_led.h>)
+
 #include <log/log.h>
 
 #include "wb_led_cct.h"
@@ -174,3 +176,5 @@ std::pair<uint16_t, bool> EDCommon::Light::WBLedCCT::getTemperature()
 
     return {map(result._value, 0, 100, 2700, 6000), result._success};
 }
+
+#endif

@@ -1,3 +1,5 @@
+#if __has_include(<device/qdy30a.h>)
+
 #include <log/log.h>
 
 #include "water_level.h"
@@ -68,3 +70,5 @@ std::pair<float_t, bool> EDCommon::Sensor::WaterLevel::getValueInternal()
 
     return std::make_pair(std::round(convertLevel * 1000.0f) / 1000.0f, true);
 }
+
+#endif

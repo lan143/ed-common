@@ -1,3 +1,5 @@
+#if __has_include(<device/wb_mr6c.h>)
+
 #include <log/log.h>
 
 #include "wb_mr6c.h"
@@ -16,3 +18,5 @@ std::pair<bool, bool> EDCommon::Relay::WBMR6C::isEnabledInternal()
 {
     return _mr6c->getRelayChannelState(_channel);
 }
+
+#endif
