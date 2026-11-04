@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Arduino.h>
-#include <device/wb_mr6c.h>
 #include <discovery.h>
 #include <mqtt.h>
 

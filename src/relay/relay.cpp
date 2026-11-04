@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <log/log.h>
 
-#include "wb_mr6c.h"
+#include "./relay.h"
 #include "mqtt/command_consumer.h"
 
 bool EDCommon::Relay::Relay::init(std::initializer_list<EDCommon::Relay::RelayOption> options)
