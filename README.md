@@ -28,6 +28,9 @@ ESP32 only (`architectures=esp32`).
 | PCF8574 I/O expander | `Relay::PCF8574P`, `Counter::PCF8574P` |
 | QDY30A water level | `Sensor::WaterLevel` |
 | MTD262MB occupancy | `BinarySensor::MTD262MB` |
+| DHT22 temperature/humidity | `Sensor::DHT22Temperature`, `Sensor::DHT22Humidity` (Adafruit DHT library) |
+| GPIO relay | `Relay::GPIO` |
+| GPIO binary sensor | `BinarySensor::GPIO` |
 
 ## Installation
 
@@ -51,7 +54,7 @@ lib_deps =
     https://github.com/lan143/ed-common.git
 ```
 
-`library.json` declares the Arduino framework, the `espressif32` platform, and the dependencies ArduinoJSON, PCF8574, and GyverFilters.
+`library.json` declares the Arduino framework, the `espressif32` platform, and the dependencies ArduinoJSON, PCF8574, GyverFilters, and the Adafruit DHT libraries.
 
 ## Dependencies
 
@@ -62,6 +65,8 @@ lib_deps =
 | `ArduinoJSON` | JSON parsing and serialization |
 | `PCF8574` | PCF8574 I/O expander driver |
 | `GyverFilters` | `GKalman` filter in `Sensor::withKalmanFilter` |
+| `DHT sensor library` | DHT22 temperature/humidity driver used by `Sensor::DHT22Sensor` |
+| `Adafruit Unified Sensor` | Dependency of the Adafruit DHT library |
 
 ### Companion libraries (not declared in `library.json`)
 
@@ -108,11 +113,11 @@ With the name `Pump`, the topics become `home/pump/state` and `home/pump/set` (n
 
 ### Relay
 
-Headers: `<relay/relay.h>`, `<relay/wb_mr6c.h>`, `<relay/pcf8574.h>`
+Headers: `<relay/relay.h>`, `<relay/wb_mr6c.h>`, `<relay/pcf8574.h>`, `<relay/gpio.h>`
 
 `Relay` publishes state as JSON and subscribes to `{prefix}/{name}/set` with `on`/`off` commands. Options: `withMQTT`, `withDiscovery`, `withTimeout`, `withOpenSemantics`, `withStateChangeListener`. Methods: `init`, `setState`, `isEnabled`, `update`.
 
-`WBMR6C` adds `init(channel, switchChannel, options)`; `PCF8574P` adds `init(channel, options)`.
+`WBMR6C` adds `init(channel, switchChannel, options)`; `PCF8574P` adds `init(channel, options)`; `GPIO` drives a plain ESP32 output pin with `init(pin, activeHigh, options)`.
 
 ### Light
 
@@ -134,15 +139,42 @@ Available wrappers:
 
 - MS: `WBMSTemperature`, `WBMSHumidity`, `WBMSLightLevel`, `WBMSOneWireTemperature`
 - MSW: `WBMSWTemperature`, `WBMSWHumidity`, `WBMSWLightLevel`, `WBMSWCO2`, `WBMSWAirQuality`
+- DHT22: `DHT22Temperature`, `DHT22Humidity`
 - `WaterLevel` (QDY30A), `WBMAI6Pressure` (WB MAI6)
+
+The DHT22 wrappers share one driver so a single physical read feeds both entities:
+
+```cpp
+#include <sensor/dht22_sensor.h>
+#include <sensor/dht22_temperature.h>
+#include <sensor/dht22_humidity.h>
+
+EDCommon::Sensor::DHT22Sensor dht22(33);
+EDCommon::Sensor::DHT22Temperature temperature(&dht22);
+EDCommon::Sensor::DHT22Humidity humidity(&dht22);
+
+void setupSensors(EDMQTT::MQTT* mqtt, EDHA::DiscoveryMgr* discovery, EDHA::Device* haDevice)
+{
+    dht22.begin();
+
+    temperature.init(1, 60000, {
+        EDCommon::Sensor::withMQTT(mqtt, "home", "controller", "Street temperature"),
+        EDCommon::Sensor::withDiscovery(discovery, haDevice),
+    });
+    humidity.init(1, 60000, {
+        EDCommon::Sensor::withMQTT(mqtt, "home", "controller", "Street humidity"),
+        EDCommon::Sensor::withDiscovery(discovery, haDevice),
+    });
+}
+```
 
 ### Binary sensor
 
-Headers: `<binary_sensor/binary_sensor.h>`, `<binary_sensor/wb_mr6c.h>`, `<binary_sensor/mtd262mb.h>`, `<binary_sensor/wb_msw.h>`
+Headers: `<binary_sensor/binary_sensor.h>`, `<binary_sensor/wb_mr6c.h>`, `<binary_sensor/mtd262mb.h>`, `<binary_sensor/wb_msw.h>`, `<binary_sensor/gpio.h>`
 
 `BinarySensor::init(updateInterval, options)`, `update()`, `setValue()`, `isActive()`. Options: `withMQTT`, `withDiscovery`.
 
-`WBMR6C` reads an MR6C input channel; `MTD262MB` exposes occupancy from the MTD262MB sensor; `WBMSW` exposes motion detection from the WB-MSW sensor.
+`WBMR6C` reads an MR6C input channel; `MTD262MB` exposes occupancy from the MTD262MB sensor; `WBMSW` exposes motion detection from the WB-MSW sensor. `GPIO` reads a plain ESP32 input pin: `GPIO(pin, deviceClass, reverse, samples = 1, sampleDelayUs = 20)` samples the pin and reports a majority vote, so `samples = 1` is a single read.
 
 ### Counter
 
@@ -187,6 +219,7 @@ The script compiles `tests/host/test_color.cpp` with `-std=gnu++11 -Wall -Wextra
 
 ## Notes and status
 
-- Current version: **0.3.0**.
+- Current version: **0.5.0**.
+- The `Relay` base class no longer requires EDWB; only Wiren Board-specific backend headers include `<device/...>`.
 - This repository does not contain a license file, and no license is stated here.
 - There is no `examples/` directory; the snippets in this README are illustrative.
