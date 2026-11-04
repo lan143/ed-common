@@ -12,7 +12,7 @@
       "type": "git",
       "url": "https://github.com/lan143/ed-common.git"
     },
-    "version": "0.3.0",
+    "version": "0.5.0",
     "frameworks": "arduino",
     "platforms": ["espressif32"],
     "dependencies": [
@@ -24,6 +24,16 @@
       },
       {
          "name": "GyverFilters"
+      },
+      {
+        "owner": "adafruit",
+        "name": "DHT sensor library",
+        "version": "1.4.7"
+      },
+      {
+        "owner": "adafruit",
+        "name": "Adafruit Unified Sensor",
+        "version": "1.1.15"
       }
     ]
   }
