@@ -219,7 +219,7 @@ The script compiles `tests/host/test_color.cpp` with `-std=gnu++11 -Wall -Wextra
 
 ## Notes and status
 
-- Current version: **0.5.0**.
+- Current version: **0.5.1**.
 - The `Relay` base class no longer requires EDWB; only Wiren Board-specific backend headers include `<device/...>`.
 - This repository does not contain a license file, and no license is stated here.
 - There is no `examples/` directory; the snippets in this README are illustrative.

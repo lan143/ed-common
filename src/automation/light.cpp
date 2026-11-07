@@ -12,6 +12,8 @@ bool EDCommon::Automation::Light::init(std::string stateFileName, std::initializ
         LOGE("init", "failed to load state from file");
     }
 
+    _state = *_stateMgr->getData();
+
     for (auto& opt : options) {
         opt(_config);
     }
@@ -181,6 +183,10 @@ bool EDCommon::Automation::Light::changeNightModeState(bool enable)
 
 void EDCommon::Automation::Light::publishState()
 {
+    if (!_config.hasMQTTSupport || _config.mqtt == nullptr) {
+        return;
+    }
+
     if (!_config.mqtt->publish(_config.mqttStateTopic.c_str(), _state.nightMode ? "true" : "false", false)) {
         LOGE("changeNightModeState", "failed to publish night mode state");
         return;
