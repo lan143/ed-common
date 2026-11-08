@@ -60,7 +60,8 @@ bool EDCommon::Sensor::Sensor::init(uint8_t precision, int64_t updateInterval, s
             ->setStateTopic(_config.mqttStateTopic)
             ->setValueTemplate("{{ value }}")
             ->setUnitOfMeasurement(_config.unitOfMeasurement)
-            ->setDeviceClass(_config.deviceClass);
+            ->setDeviceClass(_config.deviceClass)
+            ->setSensorStateClass(_config.sensorStateClass);
     }
 
     if (!postInit()) {

@@ -23,6 +23,7 @@ namespace EDCommon
             EDHA::Device* device = nullptr;
             std::string unitOfMeasurement;
             std::string deviceClass;
+            EDHA::SensorStateClass sensorStateClass = EDHA::SENSOR_STATE_CLASS_NONE;
 
             GKalman* filter = nullptr;
         };
