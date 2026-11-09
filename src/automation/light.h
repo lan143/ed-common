@@ -70,6 +70,8 @@ namespace EDCommon
             int64_t _lastStoreStateTime = 0;
             int64_t _lastCommandTime = 0;
             uint8_t _mismatchCount = 0;
+            uint8_t _enableRetryCount = 0;
+            int64_t _lastMatchTime = 0;
             uint64_t _lightLowLevelCount = 0;
 
         private:

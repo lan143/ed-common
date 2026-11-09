@@ -163,7 +163,10 @@ void EDCommon::Light::Light::update()
     LightCommand cmd;
     while (xQueueReceive(_commandQueue, &cmd, 0) == pdTRUE) {
         if (cmd.enable.second) {
-            if (setStateInternal(cmd.enable.first)) {
+            auto setStateResult = setStateInternal(cmd.enable.first);
+            _lastEnableCommand = {cmd.enable.first, setStateResult, true};
+
+            if (setStateResult) {
                 _mqttState.setEnabled(cmd.enable.first);
                 if (!publishState()) {
                     LOGE("update", "failed to publish state");

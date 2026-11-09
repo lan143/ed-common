@@ -19,6 +19,12 @@ namespace EDCommon
 
             std::pair<bool, bool> isEnabled() override { return _relay->isEnabled(); }
 
+            CommandAck lastEnableCommand() override
+            {
+                auto ack = _relay->lastEnableCommand();
+                return {ack.desired, ack.success, ack.valid};
+            }
+
             void update() override
             {
                 _relay->update();

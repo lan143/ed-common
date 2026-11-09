@@ -78,6 +78,13 @@ namespace EDCommon
             };
         }
 
+        struct CommandAck
+        {
+            bool desired;
+            bool success;
+            bool valid;
+        };
+
         class Relay
         {
         public:
@@ -89,6 +96,7 @@ namespace EDCommon
             bool init(std::initializer_list<RelayOption> options);
 
             bool setState(bool enable);
+            CommandAck lastEnableCommand() { return _lastEnableCommand; }
             std::pair<bool, bool> isEnabled();
 
             void update();
@@ -108,6 +116,7 @@ namespace EDCommon
             RelayConfig _config;
             MQTTState _mqttState;
             QueueHandle_t _commandQueue;
+            CommandAck _lastEnableCommand = {};
             bool _softwareEnabled = false;
             int64_t _lastPublishStateTime = 0;
             int64_t _lastEnabledTime = 0;

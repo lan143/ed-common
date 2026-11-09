@@ -90,16 +90,40 @@ void EDCommon::Automation::Light::update()
 
         auto now = esp_timer_get_time();
 
-        if (
-            !isEnabled.second
-            || (_backLight != nullptr && _config.hasNightMode && _state.nightMode) // main light is intentionally off in night mode
-            || (now - _lastCommandTime) < 3000000 // ignore readback shortly after issuing our own command
-            || _state.enabled == isEnabled.first
-        ) {
+        auto commandAck = _mainLight->lastEnableCommand();
+        bool hardwareMatch = isEnabled.second && _state.enabled == isEnabled.first;
+        if (hardwareMatch) {
+            _lastMatchTime = now;
+        }
+
+        bool readbackMismatch =
+            isEnabled.second
+            && !(_backLight != nullptr && _config.hasNightMode && _state.nightMode) // main light is intentionally off in night mode
+            && _state.enabled != isEnabled.first;
+
+        if (!readbackMismatch) {
             _mismatchCount = 0;
+            if (hardwareMatch) {
+                _enableRetryCount = 0;
+            }
+        } else if ((now - _lastCommandTime) < 3000000) { // ignore readback shortly after issuing our own command
+            _mismatchCount = 0;
+        } else if (
+            commandAck.valid
+            && !commandAck.success
+            && commandAck.desired == _state.enabled
+            && _lastMatchTime < _lastCommandTime // the current command has never landed on hardware — a retry can only be for our own failed write
+            && _enableRetryCount < 20
+        ) { // our own command failed on the bus — re-issue it instead of adopting the hardware state
+            _mismatchCount = 0;
+            _enableRetryCount++;
+            _lastCommandTime = now;
+            LOGE("update", "light command failed, retrying");
+            _mainLight->setState(_state.enabled);
         } else if (++_mismatchCount >= 6) { // adopt only sustained mismatches (~3s)
             changeStateInternal(isEnabled.first, true);
             _mismatchCount = 0;
+            _enableRetryCount = 0;
         }
 
         if (
@@ -115,11 +139,11 @@ void EDCommon::Automation::Light::update()
             _lastHumanDetectTime = esp_timer_get_time();
         }
 
-        if (_config.lightLevel != nullptr) {
+        if (!_state.enabled && _config.lightLevel != nullptr) {
             auto lightLevel = _config.lightLevel->getValue();
             if (lightLevel.second && lightLevel.first < _config.lowLightLevel) {
                 _lightLowLevelCount++;
-            } else {
+            } else if (lightLevel.second) {
                 _lightLowLevelCount = 0;
             }
         }
@@ -210,6 +234,7 @@ void EDCommon::Automation::Light::changeStateInternal(bool enabled, bool manual)
 
     updateLight();
 
+    _enableRetryCount = 0;
     _lastCommandTime = esp_timer_get_time();
 }
 

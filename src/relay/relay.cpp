@@ -97,7 +97,10 @@ void EDCommon::Relay::Relay::update()
 {
     bool cmd;
     while (xQueueReceive(_commandQueue, &cmd, 0) == pdTRUE) {
-        if (setStateInternal(cmd)) {
+        auto setStateResult = setStateInternal(cmd);
+        _lastEnableCommand = {cmd, setStateResult, true};
+
+        if (setStateResult) {
             _mqttState.setState(cmd);
             publishState();
 

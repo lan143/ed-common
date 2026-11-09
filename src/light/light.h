@@ -57,6 +57,13 @@ namespace EDCommon
             };
         }
 
+        struct CommandAck
+        {
+            bool desired;
+            bool success;
+            bool valid;
+        };
+
         class Light
         {
         public:
@@ -70,6 +77,7 @@ namespace EDCommon
             virtual void update();
 
             bool setState(bool enable);
+            virtual CommandAck lastEnableCommand() { return _lastEnableCommand; }
             virtual std::pair<bool, bool> isEnabled() { return {false, false}; }
 
             bool setBrightness(uint8_t brightness);
@@ -98,6 +106,7 @@ namespace EDCommon
             LightConfig _config;
             MQTTState _mqttState;
             QueueHandle_t _commandQueue;
+            CommandAck _lastEnableCommand = {};
             int64_t _lastPublishStateTime = 0;
 
         private:
