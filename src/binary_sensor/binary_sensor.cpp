@@ -109,6 +109,14 @@ void EDCommon::BinarySensor::BinarySensor::publishState()
         return;
     }
 
+    // While disconnected the publish would fail and this runs from update()'s
+    // 60 s heartbeat every tick, producing a LOGE storm. Skip silently without
+    // advancing _lastSendStateTime/_lastPublishedState so the true state is
+    // republished on the first update() after reconnect.
+    if (!_config.mqtt->isConnected()) {
+        return;
+    }
+
     if (!_isActive.second) {
         return;
     }

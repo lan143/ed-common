@@ -4,6 +4,7 @@
 #include <discovery.h>
 #include <mqtt.h>
 
+#include "../binary_sensor/binary_sensor.h"
 #include "../color/color.h"
 #include "light/mqtt/state_producer.h"
 #include "light/mqtt/state.h"
@@ -12,6 +13,12 @@ namespace EDCommon
 {
     namespace Light
     {
+        enum class WallSwitchType
+        {
+            Button,
+            Switch,
+        };
+
         struct LightCommand
         {
             std::pair<bool, bool> enable;
@@ -33,6 +40,10 @@ namespace EDCommon
             bool hasDiscovery = false;
             EDHA::DiscoveryMgr* discoveryMgr = nullptr;
             EDHA::Device* device = nullptr;
+
+            EDCommon::BinarySensor::BinarySensor* wallSwitchSensor = nullptr;
+            WallSwitchType wallSwitchType = WallSwitchType::Button;
+            int64_t wallSwitchPollIntervalMs = 30;
         };
 
         using LightOption = std::function<void(LightConfig&)>;
@@ -54,6 +65,19 @@ namespace EDCommon
                 c.hasDiscovery = true;
                 c.discoveryMgr = discoveryMgr;
                 c.device = device;
+            };
+        }
+
+        inline LightOption withWallSwitch(
+            EDCommon::BinarySensor::BinarySensor* sensor,
+            WallSwitchType type,
+            int64_t pollIntervalMs = 30
+        )
+        {
+            return [sensor, type, pollIntervalMs](LightConfig& c) {
+                c.wallSwitchSensor = sensor;
+                c.wallSwitchType = type;
+                c.wallSwitchPollIntervalMs = pollIntervalMs;
             };
         }
 
@@ -108,6 +132,16 @@ namespace EDCommon
             QueueHandle_t _commandQueue;
             CommandAck _lastEnableCommand = {};
             int64_t _lastPublishStateTime = 0;
+
+        private:
+            void updateWallSwitch();
+
+        private:
+            int64_t _lastWallSwitchPollUs = 0;
+            bool _wallSwitchHavePrevious = false;
+            bool _wallSwitchPrevious = false;
+            bool _wallSwitchDesired = false;
+            bool _wallSwitchDesiredValid = false;
 
         private:
             StateProducer* _stateProducer = nullptr;

@@ -160,6 +160,10 @@ bool EDCommon::Light::Light::setColor(CRGB color)
 
 void EDCommon::Light::Light::update()
 {
+    // Poll and apply the wall-switch binding first so a press enqueues a
+    // command that the drain below applies in the same update() call.
+    updateWallSwitch();
+
     LightCommand cmd;
     while (xQueueReceive(_commandQueue, &cmd, 0) == pdTRUE) {
         if (cmd.enable.second) {
@@ -167,6 +171,9 @@ void EDCommon::Light::Light::update()
             _lastEnableCommand = {cmd.enable.first, setStateResult, true};
 
             if (setStateResult) {
+                _wallSwitchDesired = cmd.enable.first;
+                _wallSwitchDesiredValid = true;
+
                 _mqttState.setEnabled(cmd.enable.first);
                 if (!publishState()) {
                     LOGE("update", "failed to publish state");
@@ -213,6 +220,64 @@ void EDCommon::Light::Light::update()
     if ((_lastPublishStateTime + 60000000) < esp_timer_get_time()) {
         publishState();
     }
+}
+
+void EDCommon::Light::Light::updateWallSwitch()
+{
+    if (_config.wallSwitchSensor == nullptr) {
+        return;
+    }
+
+    int64_t now = esp_timer_get_time();
+    if ((now - _lastWallSwitchPollUs) < (_config.wallSwitchPollIntervalMs * 1000)) {
+        return;
+    }
+
+    _lastWallSwitchPollUs = now;
+
+    _config.wallSwitchSensor->update();
+    auto active = _config.wallSwitchSensor->isActive();
+    if (!active.second) {
+        return;
+    }
+
+    // The very first valid read only seeds the bookkeeping; never act at boot.
+    if (!_wallSwitchHavePrevious) {
+        _wallSwitchPrevious = active.first;
+        _wallSwitchHavePrevious = true;
+
+        return;
+    }
+
+    if (_config.wallSwitchType == WallSwitchType::Button) {
+        bool risingEdge = !_wallSwitchPrevious && active.first;
+
+        if (risingEdge) {
+            auto enabled = isEnabled();
+            bool current;
+
+            if (enabled.second) {
+                current = enabled.first;
+            } else if (_wallSwitchDesiredValid) {
+                current = _wallSwitchDesired;
+            } else {
+                // No reliable current state yet: do not act blind.
+                _wallSwitchPrevious = active.first;
+                return;
+            }
+
+            bool target = !current;
+            setState(target);
+            _wallSwitchDesired = target;
+            _wallSwitchDesiredValid = true;
+        }
+    } else if (active.first != _wallSwitchPrevious) {
+        setState(active.first);
+        _wallSwitchDesired = active.first;
+        _wallSwitchDesiredValid = true;
+    }
+
+    _wallSwitchPrevious = active.first;
 }
 
 bool EDCommon::Light::Light::publishState()

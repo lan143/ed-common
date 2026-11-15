@@ -117,8 +117,14 @@ void EDCommon::Relay::Relay::update()
     }
 
     if ((_lastPublishStateTime + 60000000) < esp_timer_get_time()) {
-        if (!publishState()) {
-            LOGE("update", "failed to publish state");
+        // While the broker is offline the state producer fails fast without
+        // touching the wire, so _lastPublishStateTime never advances; logging
+        // here would produce one error per update() call. Skip the heartbeat
+        // entirely until MQTT is back, then republish the truth immediately.
+        if (_config.hasMQTTSupport && _config.mqtt != nullptr && _config.mqtt->isConnected()) {
+            if (!publishState()) {
+                LOGE("update", "failed to publish state");
+            }
         }
     }
 

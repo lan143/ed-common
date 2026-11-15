@@ -7,7 +7,7 @@ Some objects for home automations — an Arduino/ESP32 library with Home Assista
 - **Relay** — MQTT-controlled relays with Home Assistant discovery, optional timeout, open/closed semantics, and state-change listeners. Backends for Wiren Board MR6C and PCF8574.
 - **Light** — CCT and RGBW light control for Wiren Board LED devices, plus a wrapper around `Relay`. Supports on/off, brightness, color temperature, and RGB color over MQTT.
 - **Sensor** — MQTT/Home Assistant sensors with optional Kalman filtering. Wrappers for Wiren Board MS/MSW measurements, a QDY30A water-level sensor, and WB MAI6 pressure.
-- **Binary sensor** — Wiren Board MR6C digital inputs, MTD262MB occupancy detection, and WB-MSW motion detection.
+- **Binary sensor** — Wiren Board MR6C digital inputs, MTD262MB occupancy detection, WB-MSW motion detection, and PCF8574 expander inputs with debounce.
 - **Counter** — pulse water counters with cost scaling and optional persistence.
 - **Automation** — presence/light-level/night-mode smart light automation with LittleFS-persisted state.
 - **Color** — header-only, FastLED-compatible `CRGB`/`CHSV` port that is bit-for-bit compatible with FastLED 3.10.3 on non-AVR builds.
@@ -25,7 +25,7 @@ ESP32 only (`architectures=esp32`).
 | Wiren Board MSW | `Sensor::WBMSW*`, `BinarySensor::WBMSW` |
 | Wiren Board MAI6 | `Sensor::WBMAI6Pressure` |
 | Wiren Board LED | `Light::WBLedCCT`, `Light::WBLedRGBW` |
-| PCF8574 I/O expander | `Relay::PCF8574P`, `Counter::PCF8574P` |
+| PCF8574 I/O expander | `Relay::PCF8574P`, `Counter::PCF8574P`, `BinarySensor::PCF8574P` |
 | QDY30A water level | `Sensor::WaterLevel` |
 | MTD262MB occupancy | `BinarySensor::MTD262MB` |
 | DHT22 temperature/humidity | `Sensor::DHT22Temperature`, `Sensor::DHT22Humidity` (Adafruit DHT library) |
@@ -123,7 +123,9 @@ Headers: `<relay/relay.h>`, `<relay/wb_mr6c.h>`, `<relay/pcf8574.h>`, `<relay/gp
 
 Headers: `<light/light.h>`, `<light/wb_led_cct.h>`, `<light/wb_led_rgbw.h>`, `<light/relay_light.h>`
 
-`Light` provides `setState`, `setBrightness`, `setTemperature` (Kelvin), and `setColor` (`CRGB`), gated by `hasBrightnessControl`, `hasTemperatureControl`, and `hasColorControl`. Options: `withMQTT`, `withDiscovery`.
+`Light` provides `setState`, `setBrightness`, `setTemperature` (Kelvin), and `setColor` (`CRGB`), gated by `hasBrightnessControl`, `hasTemperatureControl`, and `hasColorControl`. Options: `withMQTT`, `withDiscovery`, `withWallSwitch`.
+
+`withWallSwitch(sensor, type, pollIntervalMs = 30)` binds an `EDCommon::BinarySensor::BinarySensor` (typically `BinarySensor::PCF8574P` with its own `debounceMs`) as a wall switch. With `WallSwitchType::Button` a rising edge (circuit closing) toggles the light exactly once per press, even if the input stays active across many polls. With `WallSwitchType::Switch` the light follows the debounced sensor state on every change. The first valid read only seeds internal state, so no action is taken at boot. Debounce lives in the sensor backend; the binding itself never publishes on its own. Polling happens at the start of `Light::update()` so a press is applied in the same loop iteration.
 
 `WBLedCCT` uses `init(cctChannel, switchChannel, options)`; `WBLedRGBW` uses `init(switchChannel, options)` and accepts `nativeCCT` and `whiteStrength` constructor arguments. `Light::Relay` wraps an `EDCommon::Relay::Relay` and forwards on/off state.
 
@@ -170,11 +172,15 @@ void setupSensors(EDMQTT::MQTT* mqtt, EDHA::DiscoveryMgr* discovery, EDHA::Devic
 
 ### Binary sensor
 
-Headers: `<binary_sensor/binary_sensor.h>`, `<binary_sensor/wb_mr6c.h>`, `<binary_sensor/mtd262mb.h>`, `<binary_sensor/wb_msw.h>`, `<binary_sensor/gpio.h>`
+Headers: `<binary_sensor/binary_sensor.h>`, `<binary_sensor/wb_mr6c.h>`, `<binary_sensor/mtd262mb.h>`, `<binary_sensor/wb_msw.h>`, `<binary_sensor/gpio.h>`, `<binary_sensor/pcf8574.h>`
 
 `BinarySensor::init(updateInterval, options)`, `update()`, `setValue()`, `isActive()`. Options: `withMQTT`, `withDiscovery`.
 
 `WBMR6C` reads an MR6C input channel; `MTD262MB` exposes occupancy from the MTD262MB sensor; `WBMSW` exposes motion detection from the WB-MSW sensor. `GPIO` reads a plain ESP32 input pin: `GPIO(pin, deviceClass, reverse, samples = 1, sampleDelayUs = 20)` samples the pin and reports a majority vote, so `samples = 1` is a single read.
+
+`PCF8574P(channel, deviceClass, reverse, driver, debounceMs = 0)` reads a PCF8574 expander input. With `debounceMs = 0` the raw bit is passed straight through. With a non-zero value the reported state only changes after the raw input has been stable for that many milliseconds; the first sample is accepted immediately (no boot dead time). Single-sample I2C glitches are absorbed by the debounce.
+
+Neither the Relay nor Binary sensor heartbeat logs publish failures while MQTT is disconnected; both republish once the broker reconnects.
 
 ### Counter
 
@@ -219,7 +225,7 @@ The script compiles `tests/host/test_color.cpp` with `-std=gnu++11 -Wall -Wextra
 
 ## Notes and status
 
-- Current version: **0.6.1**.
+- Current version: **0.7.0**.
 - The `Relay` base class no longer requires EDWB; only Wiren Board-specific backend headers include `<device/...>`.
 - This repository does not contain a license file, and no license is stated here.
 - There is no `examples/` directory; the snippets in this README are illustrative.
