@@ -28,7 +28,7 @@ ESP32 only (`architectures=esp32`).
 | PCF8574 I/O expander | `Relay::PCF8574P`, `Counter::PCF8574P`, `BinarySensor::PCF8574P` |
 | QDY30A water level | `Sensor::WaterLevel` |
 | MTD262MB occupancy | `BinarySensor::MTD262MB` |
-| DHT22 temperature/humidity | `Sensor::DHT22Temperature`, `Sensor::DHT22Humidity` (Adafruit DHT library) |
+| DHT11/DHT22 temperature/humidity | `Sensor::DHT11Temperature`, `Sensor::DHT11Humidity`, `Sensor::DHT22Temperature`, `Sensor::DHT22Humidity` (Adafruit DHT library) |
 | GPIO relay | `Relay::GPIO` |
 | GPIO binary sensor | `BinarySensor::GPIO` |
 
@@ -65,7 +65,7 @@ lib_deps =
 | `ArduinoJSON` | JSON parsing and serialization |
 | `PCF8574` | PCF8574 I/O expander driver |
 | `GyverFilters` | `GKalman` filter in `Sensor::withKalmanFilter` |
-| `DHT sensor library` | DHT22 temperature/humidity driver used by `Sensor::DHT22Sensor` |
+| `DHT sensor library` | DHT temperature/humidity driver used by `Sensor::DHTSensor` (DHT11/DHT22) |
 | `Adafruit Unified Sensor` | Dependency of the Adafruit DHT library |
 
 ### Companion libraries (not declared in `library.json`)
@@ -141,10 +141,10 @@ Available wrappers:
 
 - MS: `WBMSTemperature`, `WBMSHumidity`, `WBMSLightLevel`, `WBMSOneWireTemperature`
 - MSW: `WBMSWTemperature`, `WBMSWHumidity`, `WBMSWLightLevel`, `WBMSWCO2`, `WBMSWAirQuality`
-- DHT22: `DHT22Temperature`, `DHT22Humidity`
+- DHT: `DHT11Temperature`, `DHT11Humidity`, `DHT22Temperature`, `DHT22Humidity`
 - `WaterLevel` (QDY30A), `WBMAI6Pressure` (WB MAI6)
 
-The DHT22 wrappers share one driver so a single physical read feeds both entities:
+The DHT22 and DHT11 wrappers build on the shared `DHTSensor` driver, so the two sensors of one family share a single physical read per update cycle:
 
 ```cpp
 #include <sensor/dht22_sensor.h>
@@ -169,6 +169,20 @@ void setupSensors(EDMQTT::MQTT* mqtt, EDHA::DiscoveryMgr* discovery, EDHA::Devic
     });
 }
 ```
+
+The DHT11 family mirrors it with `<sensor/dht11_sensor.h>`, `<sensor/dht11_temperature.h>`, and `<sensor/dht11_humidity.h>`:
+
+```cpp
+#include <sensor/dht11_sensor.h>
+#include <sensor/dht11_temperature.h>
+#include <sensor/dht11_humidity.h>
+
+EDCommon::Sensor::DHT11Sensor dht11(14);
+EDCommon::Sensor::DHT11Temperature temperature(&dht11);
+EDCommon::Sensor::DHT11Humidity humidity(&dht11);
+```
+
+Both families inherit from `DHTSensor`, which owns the Adafruit driver and its caching.
 
 ### Binary sensor
 
@@ -225,7 +239,8 @@ The script compiles `tests/host/test_color.cpp` with `-std=gnu++11 -Wall -Wextra
 
 ## Notes and status
 
-- Current version: **0.7.0**.
+- Current version: **0.8.0**.
+- 0.8.0 adds the `DHT11Temperature`/`DHT11Humidity` wrappers over a shared `DHTSensor` base; the DHT22 API is unchanged.
 - The `Relay` base class no longer requires EDWB; only Wiren Board-specific backend headers include `<device/...>`.
 - This repository does not contain a license file, and no license is stated here.
 - There is no `examples/` directory; the snippets in this README are illustrative.

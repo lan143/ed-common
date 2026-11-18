@@ -1,19 +1,19 @@
 #include <cmath>
 
-#include "./dht22_sensor.h"
+#include "./dht_sensor.h"
 
-EDCommon::Sensor::DHT22Sensor::DHT22Sensor(uint8_t pin) : _dht(pin, DHT22)
+EDCommon::Sensor::DHTSensor::DHTSensor(uint8_t pin, uint8_t type) : _dht(pin, type)
 {
 }
 
-bool EDCommon::Sensor::DHT22Sensor::begin()
+bool EDCommon::Sensor::DHTSensor::begin()
 {
     _dht.begin();
 
     return true;
 }
 
-std::pair<float_t, bool> EDCommon::Sensor::DHT22Sensor::getTemperature()
+std::pair<float_t, bool> EDCommon::Sensor::DHTSensor::getTemperature()
 {
     float value = _dht.readTemperature();
 
@@ -24,9 +24,9 @@ std::pair<float_t, bool> EDCommon::Sensor::DHT22Sensor::getTemperature()
     return {value, true};
 }
 
-std::pair<float_t, bool> EDCommon::Sensor::DHT22Sensor::getHumidity()
+std::pair<float_t, bool> EDCommon::Sensor::DHTSensor::getHumidity()
 {
-    // Within the DHT22 minimum sample window the Adafruit driver serves the
+    // Within the DHT minimum sample window the Adafruit driver serves the
     // cached reading, so two sensors sharing one driver perform one bus read
     // per update cycle.
     float value = _dht.readHumidity();
