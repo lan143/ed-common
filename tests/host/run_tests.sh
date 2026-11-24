@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 #
-# Host-side tests for the FastLED-free color module (src/color/color.h).
+# Host-side tests for the FastLED-free color module (src/color/color.h) and the
+# pure WB-MAI6 pressure validation (src/sensor/wb_mai6_pressure_validation.h).
 # Single entrypoint: `bash tests/host/run_tests.sh`.
 #
-# Builds the test in a temporary workdir and removes it on exit. Exits non-zero
+# Builds the tests in a temporary workdir and removes it on exit. Exits non-zero
 # on any build or test failure.
 set -euo pipefail
 
@@ -29,5 +30,11 @@ echo "--- Building color tests ---"
 
 echo "--- Running color tests ---"
 "$WORKDIR/test_color"
+
+echo "--- Building WB-MAI6 pressure validation tests ---"
+"$CXX" "${FLAGS[@]}" "$SCRIPT_DIR/test_wb_mai6_pressure_validation.cpp" -o "$WORKDIR/wb_mai6_pressure_validation"
+
+echo "--- Running WB-MAI6 pressure validation tests ---"
+"$WORKDIR/wb_mai6_pressure_validation"
 
 echo "ALL HOST TESTS PASSED"

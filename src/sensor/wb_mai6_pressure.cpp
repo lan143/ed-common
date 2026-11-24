@@ -3,6 +3,7 @@
 #include <log/log.h>
 
 #include "wb_mai6_pressure.h"
+#include "wb_mai6_pressure_validation.h"
 
 bool EDCommon::Sensor::WBMAI6Pressure::setupChannel()
 {
@@ -63,8 +64,16 @@ std::pair<float_t, bool> EDCommon::Sensor::WBMAI6Pressure::getValueInternal()
         return std::make_pair(0.0f, false);
     }
 
-    float_t physicalValue = ((float_t)value.first - (float_t)_minCalculatedValue) * _maxPhysicalValue
-        / ((float_t)_maxCalculatedValue - (float_t)_minCalculatedValue);
+    float_t physicalValue = 0.0f;
+    if (!EDCommon::validateWBMAI6Pressure(
+            value.first,
+            _minCalculatedValue,
+            _maxCalculatedValue,
+            _maxPhysicalValue,
+            &physicalValue)) {
+        LOGE("getValueInternal", "WB-MAI6 channel %u invalid raw value 0x%04X", (unsigned)_channel, (unsigned)value.first);
+        return std::make_pair(0.0f, false);
+    }
 
     return std::make_pair(physicalValue, true);
 }
